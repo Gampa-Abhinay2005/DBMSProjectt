@@ -706,6 +706,207 @@ $$ LANGUAGE plpgsql;
 
 
 
+-- ROLES AND PRIVILEGES
+
+-- Create Admin role
+CREATE ROLE admin WITH SUPERUSER LOGIN PASSWORD 'admin_pass';
+
+-- Create Customer Support role
+CREATE ROLE customer_support WITH LOGIN PASSWORD 'support_pass';
+
+-- Create Finance role
+CREATE ROLE finance WITH LOGIN PASSWORD 'finance_pass';
+
+-- Create Flight Management role
+CREATE ROLE flight_management WITH LOGIN PASSWORD 'flight_pass';
+
+-- Create Review Management role
+CREATE ROLE review_management WITH LOGIN PASSWORD 'review_pass';
+
+-- Create Booking Management role
+CREATE ROLE booking_management WITH LOGIN PASSWORD 'booking_pass';
+
+-- Create Inventory Management role
+CREATE ROLE inventory_management WITH LOGIN PASSWORD 'inventory_pass';
+
+-- Create Security Management role
+CREATE ROLE security_management WITH LOGIN PASSWORD 'security_pass';
+
+-- Grant privileges to Admin role
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO admin;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO admin;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO admin;
+
+-- Grant privileges to Customer Support role
+GRANT SELECT ON users, booking_information TO customer_support;
+
+-- Grant privileges to Finance role
+GRANT SELECT, UPDATE ON payment_details TO finance;
+
+-- Grant privileges to Flight Management role
+GRANT ALL PRIVILEGES ON flight, multi_flight_connections TO flight_management;
+
+-- Grant privileges to Review Management role
+GRANT SELECT, UPDATE ON reviews_and_ratings TO review_management;
+
+-- Grant privileges to Booking Management role
+GRANT ALL PRIVILEGES ON booking_information, promotions_table TO booking_management;
+
+-- Grant privileges to Inventory Management role
+GRANT ALL PRIVILEGES ON seat_class, food_options_table TO inventory_management;
+
+-- Grant privileges to Security Management role
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO security_management;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO security_management;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO security_management;
+
+
+
+-- Functions and triggers
+-- 1)Create a trigger to update average rating when a new review is added
+CREATE OR REPLACE FUNCTION update_average_rating()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
+        UPDATE Reviews_and_Ratings r
+        SET average_rating = (SELECT AVG(rating) FROM Reviews_and_Ratings WHERE flight_id = NEW.flight_id)
+        WHERE r.flight_id = NEW.flight_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create the trigger on Reviews_and_Ratings table
+CREATE TRIGGER update_average_rating_trigger
+AFTER INSERT OR UPDATE ON Reviews_and_Ratings
+FOR EACH ROW
+EXECUTE FUNCTION update_average_rating();
+ 
+-- 2) Create a trigger to update total cost when a booking information is updated
+
+CREATE OR REPLACE FUNCTION update_total_cost()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
+        UPDATE booking_information bi
+        SET total_cost = CalculateTotalCost(bi.booking_id)
+        WHERE bi.booking_id = NEW.booking_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create the trigger on booking_information table
+CREATE TRIGGER update_total_cost_trigger
+AFTER INSERT OR UPDATE ON booking_information
+FOR EACH ROW
+EXECUTE FUNCTION update_total_cost();
+
+
+-- 3) Create a trigger to update booking status based on payment status
+
+CREATE OR REPLACE FUNCTION update_booking_status()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
+        UPDATE booking_information bi
+        SET booking_status = (
+            CASE 
+                WHEN pd.payment_status = 'Success' THEN 'Confirmed'
+                ELSE 'Pending'
+            END
+        )
+        FROM Payment_Details pd
+        WHERE bi.payment_id = pd.payment_id AND bi.booking_id = NEW.booking_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create the trigger on Payment_Details table
+CREATE TRIGGER update_booking_status_trigger
+AFTER INSERT OR UPDATE ON Payment_Details
+FOR EACH ROW
+EXECUTE FUNCTION update_booking_status();
+
+
+
+-- 4) Trigger to set flight delay status 
+CREATE TEMPORARY TABLE IF NOT EXISTS Flight_Delay_Status (
+    flight_id INT,
+    delay_status VARCHAR(20)
+);
+CREATE OR REPLACE FUNCTION update_flight_delay_status()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Calculate delay in minutes
+    NEW.delay_minutes := EXTRACT(EPOCH FROM (NEW.actual_departure_time - NEW.scheduled_departure_time)) / 60;
+
+    -- Update delay status based on delay threshold
+    IF NEW.delay_minutes > 30 THEN
+        INSERT INTO Flight_Delay_Status (flight_id, delay_status)
+        VALUES (NEW.flight_id, 'Delayed');
+    ELSE
+        INSERT INTO Flight_Delay_Status (flight_id, delay_status)
+        VALUES (NEW.flight_id, 'On Time');
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create the trigger on Flight table
+CREATE TRIGGER update_flight_delay_status_trigger
+BEFORE INSERT OR UPDATE ON Flight
+FOR EACH ROW
+EXECUTE FUNCTION update_flight_delay_status();
+
+
+
+-- 5) Create a trigger to enforce referential integrity between tables
+CREATE OR REPLACE FUNCTION enforce_referential_integrity()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if the referenced record exists in the related table
+    IF NOT EXISTS (
+        SELECT 1
+        FROM related_table
+        WHERE related_column = NEW.referenced_column
+    ) THEN
+        RAISE EXCEPTION 'Referential integrity violation: Record not found in related_table.';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create the trigger on main_table
+CREATE TRIGGER enforce_referential_integrity_trigger
+BEFORE INSERT OR UPDATE ON booking_information
+FOR EACH ROW
+EXECUTE FUNCTION enforce_referential_integrity();
+
+-- 6) Trigger to prevent dupliate rows with same user
+CREATE OR REPLACE FUNCTION prevent_duplicate_users()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM users
+        WHERE email = NEW.email
+            AND user_id != NEW.user_id -- Exclude the current record for updates
+    ) THEN
+        RAISE EXCEPTION 'Duplicate user: User with the same email already exists.';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER prevent_duplicate_users_trigger
+BEFORE INSERT OR UPDATE ON users
+FOR EACH ROW
+EXECUTE FUNCTION prevent_duplicate_users();
 
 
 
