@@ -295,8 +295,86 @@ BEGIN
     RETURN seat_available;
 END;
 $$ LANGUAGE plpgsql;
+-- 5) Function that gives list of flights from given given departure airport to arrival airport
+CREATE OR REPLACE function search_flights(
+	departure_airport_code VARCHAR(255),
+	arrival_airport_code VARCHAR(255),
+	departure_date DATE,
+	num_passengers INT
+)
+RETURNS TABLE(
+	flight_id INT,
+	airline VARCHAR(255),
+	departure_airport VARCHAR(255),
+	arrival_airport VARCHAR(255),
+	departure_date_time TIMESTAMP,
+	arrival_date_time TIMESTAMP,
+	airline_type VARCHAR(50),
+	flight_status VARCHAR(20)
+)
+AS $$
+BEGIN
+	RETURN QUERY
+	SELECT 
+		f.flight_id,
+		f.airline,
+		f.departure_airport,
+		f.arrival_airport,
+		f.departure_date_time,
+		f.arrival_date_time,
+		f.airline_type,
+		f.flight_status
+	FROM 
+		flight f
+	WHERE
+		(f.departure_airport=search_flights.departure_airport_code
+		 OR f.arrival_airport = search_flights.arrival_airport_code)
+		AND DATE(f.departure_date_time)=search_flights.departure_date 
+		AND f.flight_id IN (
+			SELECT f1.flight_id FROM Flight f1
+			JOIN Seat_class s on f1.flight_id = s.flight_id
+			WHERE s.availability_status = 'available'
+			GROUP BY f1.flight_id
+			HAVING COUNT(f1.flight_id)>=search_flights.num_passengers
+		)
+	UNION
+	SELECT 
+		f.flight_id,
+		f.airline,
+		f.departure_airport,
+		f.arrival_airport,
+		f.departure_date_time,
+		f.arrival_date_time,
+		f.airline_type,
+		f.flight_status
+	FROM 
+		Multi_flight_connections mfc
+	JOIN 
+		Flight f ON mfc.connected_flight_id = f.flight_id
+	WHERE
+		mfc.original_flight_id IN(
+			SELECT 
+				f.flight_id
+			FROM
+				Flight f
+			WHERE 
+				f.departure_airport = search_flights.departure_airport_code
+				AND f.arrival_airport = search_flights.arrival_airport_code
+				AND DATE(f.departure_date_time) = search_flights.departure_date
+		)
+	ORDER BY
+		departure_date_time ASC;
+END;
+$$ LANGUAGE plpgsql;
+SELECT * FROM search_flights(
+	departure_airport_code := 'JFK',
+	arrival_airport_code := 'LAX',
+	departure_date := '2024-05-01',
+	num_passengers := 2
+);
 
 
+SELECT * FROM flight;
 
 
 
