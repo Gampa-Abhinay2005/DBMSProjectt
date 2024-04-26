@@ -218,28 +218,41 @@ SELECT * FROM reviews_and_ratings;
 CREATE OR REPLACE FUNCTION CalculateTotalCost(p_booking_id INT)
 RETURNS NUMERIC(10,2) AS $$
 DECLARE 
-	total_cost NUMERIC(10, 2);
-	v_discount_amount NUMERIC(10,2);
+    total_cost NUMERIC(10, 2);
+    v_discount_amount NUMERIC(10,2);
+    v_num_passengers INT;
 BEGIN 
-	SELECT COALESCE(SUM(sc.price), 0) + COALESCE(SUM(ft.price),0)
-	INTO total_cost
-	FROM Seat_class sc
-	LEFT JOIN Booking_Information bi ON sc.flight_id = bi.flight_id
-	LEFT JOIN Food_options_table ft ON ft.flight_id = bi.flight_id
-	WHERE bi.booking_id = p_booking_id;
-	
-	SELECT Promotions_table.discount_amount
-	INTO v_discount_amount
-	FROM promotions_table
-	WHERE promotions_table.booking_id = p_booking_id;
-	
-	IF v_discount_amount is NOT NULL THEN 
-		total_cost := total_cost - v_discount_amount;
-	END IF;
-	
-	RETURN total_cost;
+    -- Calculate total cost without considering number of passengers
+    SELECT COALESCE(SUM(sc.price), 0) + COALESCE(SUM(ft.price),0)
+    INTO total_cost
+    FROM Seat_class sc
+    LEFT JOIN Booking_Information bi ON sc.flight_id = bi.flight_id
+    LEFT JOIN Food_options_table ft ON ft.flight_id = bi.flight_id
+    WHERE bi.booking_id = p_booking_id;
+
+    -- Retrieve discount amount
+    SELECT Promotions_table.discount_amount
+    INTO v_discount_amount
+    FROM Promotions_table
+    WHERE Promotions_table.booking_id = p_booking_id;
+
+    -- Apply discount if available
+    IF v_discount_amount IS NOT NULL THEN 
+        total_cost := total_cost - v_discount_amount;
+    END IF;
+
+    -- Retrieve number of passengers from Passengers_list table
+    SELECT COUNT(*) INTO v_num_passengers
+    FROM Passengers_list
+    WHERE booking_id = p_booking_id;
+
+    -- Multiply total cost by number of passengers
+    total_cost := total_cost * v_num_passengers;
+
+    RETURN total_cost;
 END;
 $$ LANGUAGE plpgsql;
+
 
 
 SELECT 
@@ -295,6 +308,11 @@ BEGIN
     RETURN seat_available;
 END;
 $$ LANGUAGE plpgsql;
+SELECT check_seat_availability(1, 'A1');
+SELECT * FROM SEAT_Class;
+select * from flight;
+select * from seat_class;
+
 -- 5) Function that gives list of flights from given given departure airport to arrival airport
 CREATE OR REPLACE function search_flights(
 	departure_airport_code VARCHAR(255),
@@ -376,28 +394,314 @@ SELECT * FROM search_flights(
 
 SELECT * FROM flight;
 
+-- PROCUDURES:
+
+-- 1) Procedure for booking a flight. 
+--  This will handle thr booking process by inserting a new booking record into the Booking_Information_table
+--  updating the seat_availability and processing the payment
+CREATE OR REPLACE PROCEDURE book_flight(
+    IN p_user_id INT,
+    IN p_flight_id INT,
+    IN p_num_passengers INT,
+    IN p_payment_mode VARCHAR(50),
+    IN p_passenger_name VARCHAR(255),
+    IN p_passenger_age INT,
+    IN p_passenger_gender VARCHAR(10),
+    IN p_passenger_type VARCHAR(20),
+    IN p_new_departure_terminal VARCHAR(15), -- New departure terminal
+    IN p_new_arrival_terminal VARCHAR(15)   -- New arrival terminal
+)
+LANGUAGE plpgsql 
+AS $$
+DECLARE 
+    v_total_cost NUMERIC(10, 2);
+    v_food_cost NUMERIC(10, 2);
+    v_discount_amount NUMERIC(10, 2);
+    v_arrival_terminal VARCHAR(15);
+    v_departure_terminal VARCHAR(15);
+    v_arrival_date DATE;
+    v_departure_date DATE;
+    v_payment_id INT;
+    v_booking_id INT;
+BEGIN
+    -- Calculate total cost based on seat prices
+    SELECT COALESCE(SUM(sc.price * p_num_passengers), 0)
+    INTO v_total_cost
+    FROM Seat_class sc
+    WHERE sc.flight_id = p_flight_id
+    LIMIT 1;
+
+    -- Calculate food cost based on selected food options
+    SELECT COALESCE(SUM(ft.price * p_num_passengers), 0)
+    INTO v_food_cost
+    FROM Food_options_table ft
+    WHERE ft.flight_id = p_flight_id
+    LIMIT 1;
+
+    -- Add food cost to total cost
+    v_total_cost := v_total_cost + v_food_cost;
+
+    -- Retrieve discount amount from promotions
+    SELECT COALESCE(SUM(pt.discount_amount), 0)
+    INTO v_discount_amount
+    FROM Promotions_table pt
+    JOIN Booking_Information bi ON pt.booking_id = bi.booking_id
+    WHERE bi.flight_id = p_flight_id  -- Assuming you fetch booking_id based on flight_id
+    LIMIT 1;
+
+    -- Apply discount if applicable
+    v_total_cost := v_total_cost - v_discount_amount;
+
+    -- Fetch arrival_terminal, departure_terminal, arrival_date, and departure_date from Flight table
+    SELECT DATE(arrival_date_time), DATE(departure_date_time)
+    INTO v_arrival_date, v_departure_date
+    FROM Flight
+    WHERE flight_id = p_flight_id;
+
+    -- Update terminals if new values are provided
+    
+    v_departure_terminal := p_new_departure_terminal;
+    
+
+    v_arrival_terminal := p_new_arrival_terminal;
+ 
+
+    -- Insert payment details with default values for payment_amount and payment_status
+    INSERT INTO Payment_details(payment_date, mode_of_payment, payment_amount, payment_status)
+    VALUES (CURRENT_DATE, p_payment_mode, v_total_cost, 'successful')
+    RETURNING payment_id INTO v_payment_id;  -- Retrieve the generated payment_id
+
+    -- Insert booking information with fetched payment_id, arrival_terminal, departure_terminal, arrival_date, and departure_date
+    INSERT INTO Booking_Information(user_id, total_cost, payment_id, booking_date, flight_id, departure_date, arrival_date, departure_terminal, arrival_terminal)
+    VALUES (p_user_id, v_total_cost, v_payment_id, CURRENT_DATE, p_flight_id, v_departure_date, v_arrival_date, v_departure_terminal, v_arrival_terminal)
+    RETURNING booking_id INTO v_booking_id;  -- Retrieve the generated booking_id
+
+    -- Update seat availability for the number of passengers booked
+    UPDATE Seat_class
+    SET availability_status = 'booked'
+    WHERE flight_id = p_flight_id
+    AND availability_status = 'available'
+    AND seat_number IN (
+        SELECT seat_number
+        FROM Seat_class
+        WHERE flight_id = p_flight_id
+        AND availability_status = 'available'
+        LIMIT p_num_passengers
+    );
+
+    -- Insert passenger details into Passengers_list
+    INSERT INTO Passengers_list(user_id, booking_id, name, age, gender, passenger_type)
+    VALUES (p_user_id, v_booking_id, p_passenger_name, p_passenger_age, p_passenger_gender, p_passenger_type);
+
+    RAISE NOTICE 'Booking successful! Booking ID: %, Total cost: $%', v_booking_id, v_total_cost;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE EXCEPTION 'Error booking flight: %', SQLERRM;
+END;
+$$;
 
 
 
+-- Sample call to book_flight function
+CALL book_flight(
+    p_user_id := 1,  -- Replace with actual user ID
+    p_flight_id := 4,  -- Replace with actual flight ID
+    p_num_passengers := 2,
+    p_payment_mode := 'Credit Card',  -- Replace with actual payment mode
+    p_passenger_name := 'John Doe',
+    p_passenger_age := 30,
+    p_passenger_gender := 'Male',
+    p_passenger_type := 'Adult',
+    p_new_departure_terminal := 'A',-- Replace with new departure terminal if needed
+    p_new_arrival_terminal := 'B'-- Replace with new arrival terminal if needed
+);
 
 
 
+SELECT * FROM booking_information;
+SELECT * FROM payment_details;
+
+DELETE FROM payment_details where payment_id = 6;
+DELETE FROM booking_information where booking_id = 6;
+
+SELECT * FROM seat_Class;
+
+-- 2) Procedure to make booking with seat and food
+
+CREATE OR REPLACE PROCEDURE MakeBookingWithSeatAndFood(
+    userID INT, 
+    flightID INT, 
+    seatType VARCHAR(50), 
+    seatNumber VARCHAR(10), 
+    foodID INT,
+    passengerName VARCHAR(255),
+    passengerAge INT,
+    passengerGender VARCHAR(10),
+    passengerType VARCHAR(20),
+    paymentMode VARCHAR(50),
+    departureDate DATE,
+    arrivalDate DATE,
+    totalCost NUMERIC(10, 2)
+) AS $$
+DECLARE
+    bookingID INT;
+    paymentID INT;
+BEGIN
+    -- Check if the seat is available
+    IF NOT EXISTS (
+        SELECT 1
+        FROM Seat_class
+        WHERE flight_id = flightID AND type_of_seat = seatType AND seat_number = seatNumber
+    ) THEN
+        RAISE EXCEPTION 'Seat % is not available for flight %.', seatNumber, flightID;
+    END IF;
+
+    -- Add a new booking
+    INSERT INTO Booking_Information (user_id, flight_id, booking_date, departure_date, arrival_date, Total_cost)
+    VALUES (userID, flightID, CURRENT_DATE, departureDate, arrivalDate, totalCost)
+    RETURNING booking_id INTO bookingID;
+
+    -- Update seat availability status
+    UPDATE Seat_class
+    SET availability_status = 'booked'
+    WHERE flight_id = flightID AND type_of_seat = seatType AND seat_number = seatNumber;
+
+    -- Add payment details
+    INSERT INTO Payment_Details (payment_date, Mode_of_payment, payment_amount, payment_status)
+    VALUES (CURRENT_DATE, paymentMode, totalCost, 'successful')
+    RETURNING payment_id INTO paymentID;
+
+    -- Update booking with payment ID
+    UPDATE Booking_Information
+    SET payment_id = paymentID
+    WHERE booking_id = bookingID;
+
+    -- Add passenger details
+    INSERT INTO Passengers_list (user_id, booking_id, name, age, gender, passenger_type)
+    VALUES (userID, bookingID, passengerName, passengerAge, passengerGender, passengerType);
+
+    -- Place food order
+    INSERT INTO Food_options_table (flight_id, food_id, food_status)
+    VALUES (flightID, foodID, 'available upon request');
+    
+    COMMIT;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE 'Error in booking: %', SQLERRM;
+        ROLLBACK;
+END;
+$$ LANGUAGE plpgsql;
 
 
 
+-- Sample call to MakeBookingWithSeatAndFood procedure
+CALL MakeBookingWithSeatAndFood(
+    userID := 1,  -- Replace with actual user ID
+    flightID := 5,  -- Replace with actual flight ID
+    seatType := 'Business',  -- Replace with actual seat type
+    seatNumber := 'A1',  -- Replace with actual seat number
+    foodID := 2,-- Replace with actual food ID
+    passengerName := 'John Doe',  -- Replace with actual passenger name
+    passengerAge := 35,  -- Replace with actual passenger age
+    passengerGender := 'Male',  -- Replace with actual passenger gender
+    passengerType := 'Adult',  -- Replace with actual passenger type
+    paymentMode := 'Credit Card',  -- Replace with actual payment mode
+    departureDate := '2024-05-01',  -- Replace with actual departure date
+    arrivalDate := '2024-05-01',  -- Replace with actual arrival date
+    totalCost := 250.00  -- Replace with actual total cost
+);
+SELECT * FROM food_options_table;
+
+
+-- 3) Procedure to cancels a booking, updates seat availability and 
+
+
+CREATE OR REPLACE PROCEDURE CancelBooking(
+    bookingID INT
+) AS $$
+BEGIN
+    -- Update seat availability status to 'available'
+    UPDATE Seat_class
+    SET availability_status = 'available'
+    WHERE seat_number IN (
+        SELECT seat_number
+        FROM Booking_Information
+        WHERE booking_id = bookingID
+    );
+
+    -- Cancel food orders associated with the booking
+    DELETE FROM Food_options_table
+    WHERE booking_id = bookingID;
+
+    -- Cancel the booking
+    DELETE FROM Booking_Information
+    WHERE booking_id = bookingID;
+
+    COMMIT;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE 'Error cancelling booking: %', SQLERRM;
+        ROLLBACK;
+END;
+$$ LANGUAGE plpgsql;
 
 
 
+-- 4) Procedure to update booking details
+CREATE OR REPLACE PROCEDURE UpdateBookingDetails(
+    bookingID INT,
+    newPassengerName VARCHAR(255),
+    newPassengerAge INT,
+    newPaymentMode VARCHAR(50)
+) AS $$
+BEGIN
+    -- Update passenger details
+    UPDATE Passengers_list
+    SET name = newPassengerName, age = newPassengerAge
+    WHERE booking_id = bookingID;
+
+    -- Update payment details
+    UPDATE Payment_Details
+    SET Mode_of_payment = newPaymentMode
+    WHERE payment_id = (
+        SELECT payment_id
+        FROM Booking_Information
+        WHERE booking_id = bookingID
+    );
+
+    COMMIT;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE 'Error updating booking details: %', SQLERRM;
+        ROLLBACK;
+END;
+$$ LANGUAGE plpgsql;
 
 
-
-
-
-
-
-
-
-
+-- 5) Procedure to retrive reviews and ratings for a given flightID
+CREATE OR REPLACE PROCEDURE GetFlightReviews(
+    flightID INT
+) AS $$
+DECLARE
+    reviewCursor CURSOR FOR
+        SELECT user_id, rating, review_text, review_date
+        FROM Reviews
+        WHERE flight_id = flightID;
+    reviewRecord RECORD;
+BEGIN
+    OPEN reviewCursor;
+    LOOP
+        FETCH reviewCursor INTO reviewRecord;
+        EXIT WHEN NOT FOUND;
+        RAISE NOTICE 'User ID: %, Rating: %, Review: %, Date: %', reviewRecord.user_id, reviewRecord.rating, reviewRecord.review_text, reviewRecord.review_date;
+    END LOOP;
+    CLOSE reviewCursor;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE 'Error retrieving flight reviews: %', SQLERRM;
+END;
+$$ LANGUAGE plpgsql;
 
 
 
