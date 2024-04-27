@@ -908,6 +908,105 @@ BEFORE INSERT OR UPDATE ON users
 FOR EACH ROW
 EXECUTE FUNCTION prevent_duplicate_users();
 
+-- VIEWS 
+-- 1) User Booking Summary view: This view gives the booking data for each user including total number of bookings and total amount spent.
+
+CREATE VIEW User_Booking_summary AS 
+SELECT 
+	u.user_id,
+	u.username,
+	u.first_name,
+	u.last_name,
+	COUNT(b.booking_id) AS total_bookings,
+	SUM(b.Total_cost) AS total_spent
+FROM
+	users u
+LEFT JOIN 
+	Booking_Information b on u.user_id = b.user_id
+GROUP BY
+	u.user_id, u.username, u.first_name, u.last_name;
+
+SELECT * FROM User_Booking_summary;
+
+-- 2) Booking_details_view: Aggregates booking information along with user information, flight details, payment information and passenger information
+
+CREATE VIEW Booking_details_view AS
+SELECT b.booking_id, u.username, u.first_name, u.last_name, u.email,
+		f.airline, f.departure_airport, f.arrival_airport,
+		b.departure_date, b.arrival_date, b.departure_terminal, b.arrival_terminal,
+		p.payment_date, p.Mode_of_payment, p.payment_amount, p.payment_status,
+		STRING_AGG(pas.name || '(' || pas.age || ', ' || pas.gender || ')', ': ') AS passengers
+FROM Booking_information b
+JOIN users u on b.user_id = u.user_id
+JOIN flight f on b.flight_id = f.flight_id
+JOIN Payment_details p on b.payment_id = p.payment_id
+JOIN Passengers_list pas on b.booking_id = pas.booking_id
+GROUP BY b.booking_id, u.username, u.first_name, u.last_name, u.email,
+		f.airline, f.departure_airport, f.arrival_airport,
+		b.departure_date, b.arrival_date, b.departure_terminal, b.arrival_terminal,
+		p.payment_date, p.Mode_of_payment, p.payment_amount, p.payment_status;
+		
+SELECT * FROM Booking_details_view;
+
+-- 3) Available Food options view
+
+CREATE VIEW Available_food_options_view AS
+SELECT f.flight_id, f.airline, fo.food_type, fo.description, fo.Price
+FROM flight f 
+LEFT JOIN Food_options_table fo on f.flight_id = fo.flight_id
+WHERE fo.availability_status = 'Available';
+
+SELECT * FROM Available_food_options_view;
+
+-- 4) Flight_availability_view
+CREATE VIEW flight_availability_view AS
+SELECT 
+    f.flight_id,
+    f.airline,
+    DATE(f.departure_date_time) AS departure_date,
+    DATE(f.arrival_date_time) AS arrival_date,
+    COUNT(s.seat_number) AS total_seats,
+    SUM(CASE WHEN s.availability_status = 'Available' THEN 1 ELSE 0 END) AS available_seats
+FROM 
+    flight f
+LEFT JOIN 
+    Seat_class s ON f.flight_id = s.flight_id 
+GROUP BY 
+    f.flight_id,
+    f.airline,
+    DATE(f.departure_date_time),
+    DATE(f.arrival_date_time);
+
+
+
+SELECT * FROM flight_availability_view;
+
+
+
+-- 5) Passenger_count_by_flight_view:
+
+CREATE VIEW passengers_count_by_flight_view AS
+SELECT b.flight_id, f.airline, COUNT(pl.user_id) AS passenger_count
+FROM booking_information b
+JOIN flight f ON f.flight_id = b.flight_id
+JOIN passengers_list pl on b.booking_id = pl.booking_id
+GROUP BY b.flight_id, f.airline;
+
+SELECT * FROM passengers_count_by_flight_view;
+
+-- 6) User Review summary view
+
+CREATE VIEW User_review_summary_view AS
+SELECT f.flight_id, f.airline, f.departure_airport, f.arrival_airport,
+		AVG(rr.rating) AS average_rating,
+		COUNT(rr.review_id) AS total_reviews
+FROM flight f 
+LEFT JOIN Reviews_and_ratings rr on f.flight_id = rr.flight_id
+GROUP BY f.flight_id, f.airline, f.departure_airport, f.arrival_airport;
+
+SELECT * FROM user_review_summary_view;
+
+
 
 
 
