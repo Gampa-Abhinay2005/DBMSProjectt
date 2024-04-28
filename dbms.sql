@@ -107,6 +107,14 @@ CREATE TABLE Promotions_table (
     booking_id INTEGER REFERENCES Booking_Information(booking_id)
 );
 
+CREATE TABLE Login_Attempts (
+    attempt_id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES Users(user_id),
+    login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    login_success BOOLEAN
+);
+
+
 
 INSERT INTO Flight (Airline, Departure_airport, Arrival_airport, Departure_date_time, Arrival_date_time, Airline_type, Flight_status)
 VALUES ('Delta Airlines', 'JFK', 'LAX', '2024-05-01 08:00:00', '2024-05-01 11:30:00', 'Domestic', 'On Time'),
@@ -192,7 +200,14 @@ VALUES ('FLY50', 50.00, '2024-04-21', '2024-05-21', 'Get 50% off on next booking
        ('SPRING20', 20.00, '2024-03-25', '2024-04-25', 'Spring discount', 4);
 SELECT * FROM promotions_table;
 
+INSERT INTO Login_Attempts (user_id, login_time, login_success) VALUES
+(1, '2024-04-30 08:30:00', true),
+(2, '2024-04-30 09:15:00', false),
+(3, '2024-04-30 10:00:00', true),
+(1, '2024-04-30 11:30:00', true),
+(2, '2024-04-30 12:45:00', true);
 
+SELECT * FROM Login_Attempts;
 
 -- FUNCTIONS:
 -- 1) GET THE average rating for a given flight_id
@@ -905,6 +920,229 @@ BEFORE INSERT OR UPDATE ON users
 FOR EACH ROW
 EXECUTE FUNCTION prevent_duplicate_users();
 
+-- 7) Trigger to update last_login_date of the user
+CREATE OR REPLACE FUNCTION update_last_login()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Update last_login_date for the user who just logged in
+    UPDATE Users
+    SET last_login_date = DATETIME(CURRENT_TIMESTAMP)
+    WHERE user_id = NEW.user_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER on_login_attempt
+AFTER INSERT ON Login_Attempts
+FOR EACH ROW
+EXECUTE FUNCTION update_last_login();
+
+
+-- 8) Trigger to remove a row from promotions_table is promo code is expired
+CREATE OR REPLACE FUNCTION remove_expired_promo_code()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'UPDATE' AND OLD.valid_until IS NOT NULL AND NEW.valid_until IS NULL THEN
+        DELETE FROM Promotions_table
+        WHERE promotion_id = OLD.promotion_id;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_promo_validity
+AFTER INSERT OR UPDATE OF valid_until ON Promotions_table
+FOR EACH ROW
+EXECUTE FUNCTION remove_expired_promo_code();
+
+-- 9) Trigger to failed log in attempts
+CREATE OR REPLACE FUNCTION log_failed_login_attempts()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.login_success = false THEN
+        INSERT INTO Failed_login_attempts (user_id, login_time)
+        VALUES (NEW.user_id, NEW.login_time);
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER on_failed_login
+AFTER INSERT ON login_attempts
+FOR EACH ROW
+EXECUTE FUNCTION log_failed_login_attempts();
+
+-- 10) Triggers to handle foreign key violations
+-- Trigger for Booking_Information Table
+CREATE OR REPLACE FUNCTION check_booking_foreign_keys()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM users WHERE user_id = NEW.user_id
+    ) THEN
+        RAISE EXCEPTION 'User ID does not exist in the users table';
+    END IF;
+    
+    IF NOT EXISTS (
+        SELECT 1 FROM flight WHERE flight_id = NEW.flight_id
+    ) THEN
+        RAISE EXCEPTION 'Flight ID does not exist in the flight table';
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_booking_foreign_keys_before_insert
+BEFORE INSERT ON Booking_Information
+FOR EACH ROW
+EXECUTE FUNCTION check_booking_foreign_keys();
+
+-- Trigger for Reviews and Ratings Table
+CREATE OR REPLACE FUNCTION check_reviews_foreign_keys()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM users WHERE user_id = NEW.user_id
+    ) THEN
+        RAISE EXCEPTION 'User ID does not exist in the users table';
+    END IF;
+    
+    IF NOT EXISTS (
+        SELECT 1 FROM flight WHERE flight_id = NEW.flight_id
+    ) THEN
+        RAISE EXCEPTION 'Flight ID does not exist in the flight table';
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_reviews_foreign_keys_before_insert
+BEFORE INSERT ON Reviews_and_ratings
+FOR EACH ROW
+EXECUTE FUNCTION check_reviews_foreign_keys();
+
+-- Trigger for Seat_class Table
+CREATE OR REPLACE FUNCTION check_seat_class_foreign_keys()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM flight WHERE flight_id = NEW.flight_id
+    ) THEN
+        RAISE EXCEPTION 'Flight ID does not exist in the flight table';
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_seat_class_foreign_keys_before_insert
+BEFORE INSERT ON Seat_class
+FOR EACH ROW
+EXECUTE FUNCTION check_seat_class_foreign_keys();
+
+-- Trigger for Multi_flight_connections Table
+CREATE OR REPLACE FUNCTION check_multi_flight_connections_foreign_keys()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM flight WHERE flight_id = NEW.original_flight_id
+    ) THEN
+        RAISE EXCEPTION 'Original Flight ID does not exist in the flight table';
+    END IF;
+    
+    IF NOT EXISTS (
+        SELECT 1 FROM flight WHERE flight_id = NEW.connected_flight_id
+    ) THEN
+        RAISE EXCEPTION 'Connected Flight ID does not exist in the flight table';
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_multi_flight_connections_foreign_keys_before_insert
+BEFORE INSERT ON Multi_flight_connections
+FOR EACH ROW
+EXECUTE FUNCTION check_multi_flight_connections_foreign_keys();
+
+-- Trigger for Passengers_list Table
+CREATE OR REPLACE FUNCTION check_passengers_list_foreign_keys()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM users WHERE user_id = NEW.user_id
+    ) THEN
+        RAISE EXCEPTION 'User ID does not exist in the users table';
+    END IF;
+    
+    IF NOT EXISTS (
+        SELECT 1 FROM Booking_Information WHERE booking_id = NEW.booking_id
+    ) THEN
+        RAISE EXCEPTION 'Booking ID does not exist in the Booking_Information table';
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_passengers_list_foreign_keys_before_insert
+BEFORE INSERT ON Passengers_list
+FOR EACH ROW
+EXECUTE FUNCTION check_passengers_list_foreign_keys();
+
+-- Trigger for Food_options_table Table
+CREATE OR REPLACE FUNCTION check_food_options_foreign_keys()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM flight WHERE flight_id = NEW.flight_id
+    ) THEN
+        RAISE EXCEPTION 'Flight ID does not exist in the flight table';
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_food_options_foreign_keys_before_insert
+BEFORE INSERT ON Food_options_table
+FOR EACH ROW
+EXECUTE FUNCTION check_food_options_foreign_keys();
+
+-- Trigger for Promotions_table Table
+CREATE OR REPLACE FUNCTION check_promotions_foreign_keys()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM Booking_Information WHERE booking_id = NEW.booking_id
+    ) THEN
+        RAISE EXCEPTION 'Booking ID does not exist in the Booking_Information table';
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_promotions_foreign_keys_before_insert
+BEFORE INSERT ON Promotions_table
+FOR EACH ROW
+EXECUTE FUNCTION check_promotions_foreign_keys();
+
+
+
+
+
+
+
+
+
+
+
 -- VIEWS 
 -- 1) User Booking Summary view: This view gives the booking data for each user including total number of bookings and total amount spent.
 CREATE VIEW User_Booking_summary AS 
@@ -999,6 +1237,41 @@ LEFT JOIN Reviews_and_ratings rr on f.flight_id = rr.flight_id
 GROUP BY f.flight_id, f.airline, f.departure_airport, f.arrival_airport;
 
 SELECT * FROM user_review_summary_view;
+
+-- 7) View to display user_information with last login date
+CREATE VIEW User_Last_Login_Info AS
+SELECT u.user_id, u.username, u.first_name, u.last_name, u.email,
+       l.login_time AS last_login_date
+FROM users u
+LEFT JOIN login_attempts l on l.user_id = u.user_id;
+SELECT * FROM user_last_login_info;
+
+-- 8) View to display flight details with seat information
+CREATE VIEW Flight_Seat_Info AS
+SELECT f.flight_id, f.airline, f.departure_airport, f.arrival_airport,
+       s.type_of_seat, s.price, s.availability_status, s.seat_status
+FROM Flight f
+JOIN Seat_class s ON f.flight_id = s.flight_id;
+SELECT * FROM flight_seat_info;
+
+-- 9) View to display promotions with booking_information
+CREATE VIEW Promotions_Booking_Info AS
+SELECT p.promotion_id, p.promo_code, p.discount_amount, p.valid_from, p.valid_until,
+       b.booking_id, b.Total_cost, b.booking_date, b.departure_date, b.arrival_date
+FROM Promotions_table p
+JOIN Booking_Information b ON p.booking_id = b.booking_id;
+SELECT * FROM Promotions_Booking_info;
+
+-- 10) View to show multi-flight COnnections with flight details
+CREATE VIEW Multi_Flight_Connections_Details AS
+SELECT m.ConnectionID, m.original_flight_id, m.connected_flight_id,
+       f1.airline AS original_airline, f1.departure_airport AS original_departure,
+       f2.airline AS connected_airline, f2.arrival_airport AS connected_arrival
+FROM Multi_flight_connections m
+JOIN Flight f1 ON m.original_flight_id = f1.flight_id
+JOIN Flight f2 ON m.connected_flight_id = f2.flight_id;
+
+SELECT * FROM Multi_flight_connections_details;
 
 
 -- INDEXING
@@ -1161,10 +1434,6 @@ FROM
     booking_information bi
 WHERE 
     bi.booking_id = 4;
-
-
-
-
 
 
 
