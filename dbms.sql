@@ -116,6 +116,7 @@ VALUES ('Delta Airlines', 'JFK', 'LAX', '2024-05-01 08:00:00', '2024-05-01 11:30
        ('Air France', 'CDG', 'LAX', '2024-05-05 16:00:00', '2024-05-05 20:30:00', 'International', 'On Time');
 
 SELECT * FROM flight;
+
 INSERT INTO Users (userName, password, first_name, last_name, address, phone_number, age, Email, RegistrationDate, Last_login_date, Account_Status)
 VALUES ('john_doe', 'password123', 'John', 'Doe', '123 Main St, Anytown', '123-456-7890', 30, 'john.doe@example.com', '2024-04-01', '2024-04-25', 'Active'),
        ('jane_smith', 'securepwd456', 'Jane', 'Smith', '456 Elm St, Othertown', '987-654-3210', 25, 'jane.smith@example.com', '2024-03-15', '2024-04-24', 'Active'),
@@ -209,7 +210,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 select get_average_rating(3);
-
 
 SELECT * FROM reviews_and_ratings;
 
@@ -592,9 +592,6 @@ EXCEPTION
         ROLLBACK;
 END;
 $$ LANGUAGE plpgsql;
-
-
-
 -- Sample call to MakeBookingWithSeatAndFood procedure
 CALL MakeBookingWithSeatAndFood(
     userID := 1,  -- Replace with actual user ID
@@ -614,7 +611,7 @@ CALL MakeBookingWithSeatAndFood(
 SELECT * FROM food_options_table;
 
 
--- 3) Procedure to cancels a booking, updates seat availability and 
+-- 3) Procedure to cancels a booking, updates seat availability 
 
 
 CREATE OR REPLACE PROCEDURE CancelBooking(
@@ -910,7 +907,6 @@ EXECUTE FUNCTION prevent_duplicate_users();
 
 -- VIEWS 
 -- 1) User Booking Summary view: This view gives the booking data for each user including total number of bookings and total amount spent.
-
 CREATE VIEW User_Booking_summary AS 
 SELECT 
 	u.user_id,
@@ -976,9 +972,7 @@ GROUP BY
     f.airline,
     DATE(f.departure_date_time),
     DATE(f.arrival_date_time);
-
-
-
+	
 SELECT * FROM flight_availability_view;
 
 
@@ -1005,6 +999,229 @@ LEFT JOIN Reviews_and_ratings rr on f.flight_id = rr.flight_id
 GROUP BY f.flight_id, f.airline, f.departure_airport, f.arrival_airport;
 
 SELECT * FROM user_review_summary_view;
+
+
+-- INDEXING
+-- 1) INDEX ON booking_date
+CREATE INDEX idx_booking_booking_date ON Booking_Information(booking_date DESC);
+-- Query that uses the index
+EXPLAIN ANALYZE
+SELECT u.user_id, u.userName, b.booking_id, b.booking_date, f.Airline, f.Departure_airport, f.Arrival_airport
+FROM Users u
+JOIN Booking_Information b ON u.user_id = b.user_id
+JOIN Flight f ON b.flight_id = f.flight_id
+WHERE u.user_id = 1
+ORDER BY b.booking_date DESC;
+
+
+-- 2) INDEX on flight_status
+CREATE INDEX idx_flight_flight_status ON Flight(Flight_status);
+-- Query that uses this index
+SELECT 
+    f.flight_id,
+    f.Airline,
+    COUNT(DISTINCT b.booking_id) AS total_bookings,
+    COUNT(DISTINCT r.review_id) AS total_reviews,
+    AVG(r.rating) AS average_rating
+FROM 
+    Flight f
+LEFT JOIN 
+    Booking_Information b ON f.flight_id = b.flight_id
+LEFT JOIN 
+    Reviews_and_Ratings r ON f.flight_id = r.flight_id
+WHERE 
+    f.Flight_status = 'On Time'
+GROUP BY 
+    f.flight_id, f.Airline;
+SELECT * FROM flight;
+
+
+-- 3) INDEX ON departure_airport of flight
+CREATE INDEX idx_flight_departure_airport ON Flight(Departure_airport);
+-- The frequent query that uses this index
+SELECT 
+    f.flight_id,
+    f.Airline,
+    f.Departure_date_time,
+    f.Arrival_date_time,
+    f.Departure_airport,
+    f.Arrival_airport
+FROM 
+    Flight f
+WHERE 
+    f.Departure_airport = 'JFK';
+
+SELECT * FROM flight;
+
+-- 4) INDEX on user_name of users table
+CREATE INDEX idx_users_username ON Users(userName);
+-- Frequent query that uses the index
+
+SELECT 
+    b.booking_id,
+    b.booking_date,
+    u.userName,
+    f.Airline,
+    f.Departure_airport,
+    f.Arrival_airport
+FROM 
+    Booking_Information b
+JOIN 
+    Users u ON b.user_id = u.user_id
+JOIN 
+    Flight f ON b.flight_id = f.flight_id
+WHERE 
+    u.userName = 'jane_smith';
+SELECT * FROM users;
+
+-- 5) INDEX ON availability status of food_options_table
+CREATE INDEX idx_food_options_availability_status ON Food_options_table(availability_status);
+-- Frequent query that uses this index
+SELECT 
+    f.food_id,
+    f.food_type,
+    f.description,
+    f.Price,
+    f.availability_status,
+    fo.Flight_id
+FROM 
+    Food_options_table f
+JOIN 
+    Flight fo ON f.Flight_id = fo.Flight_id
+WHERE 
+    f.availability_status = 'Available' AND fo.Flight_status = 'On Time';
+
+
+-- 6) INDEX ON original_flight_id in multiconnectedFlights
+CREATE INDEX idx_connections_original_flight_id ON Multi_flight_connections(original_flight_id);
+-- Query that uses this index
+SELECT 
+    ConnectionID,
+    original_flight_id,
+    Connected_flight_id,
+    Layover_duration,
+    Layover_airport
+FROM 
+    Multi_flight_connections
+WHERE 
+    original_flight_id = 1;
+
+-- 7) INDEX ON booking_id of Booking_information
+CREATE INDEX idx_booking_booking_id ON Booking_Information(booking_id);
+-- Query that uses the index
+SELECT 
+    b.booking_id,
+    b.booking_date,
+    u.userName,
+    f.Airline,
+    f.Departure_airport,
+    f.Arrival_airport
+FROM 
+    Booking_Information b
+JOIN 
+    Users u ON b.user_id = u.user_id
+JOIN 
+    Flight f ON b.flight_id = f.flight_id
+WHERE 
+    b.booking_id = 2;
+
+
+-- 8) INDEX ON user_id, flight_id OF booking_information
+CREATE INDEX idx_booking_user_flight ON Booking_Information(user_id, flight_id);
+
+-- Query that uses this index
+SELECT 
+    b.booking_id,
+    b.booking_date,
+    u.userName,
+    f.Airline,
+    f.Departure_airport,
+    f.Arrival_airport
+FROM 
+    Booking_Information b
+JOIN 
+    Users u ON b.user_id = u.user_id
+JOIN 
+    Flight f ON b.flight_id = f.flight_id
+WHERE 
+    b.user_id = 1
+    AND b.flight_id = 1;
+	
+	
+
+-- Queries that use different functions and roles
+
+
+-- This query calculates and retrieves the total cost of a booking based on the booking ID, which is relevant for financial analysis and reporting.
+-- THis is for role finance role
+SELECT 
+    bi.booking_id,
+    CalculateTotalCost(bi.booking_id) AS total_cost
+FROM 
+    booking_information bi
+WHERE 
+    bi.booking_id = 4;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
