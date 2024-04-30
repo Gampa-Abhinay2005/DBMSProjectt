@@ -1,3 +1,7 @@
+-- Travel Booking System
+	
+-- Creating Tables
+
 CREATE TABLE Users (
     user_id SERIAL PRIMARY KEY NOT NULL,
     userName VARCHAR(255) UNIQUE NOT NULL,
@@ -115,7 +119,7 @@ CREATE TABLE Login_Attempts (
 );
 
 
-
+-- Inserting 5 values each into the table
 INSERT INTO Flight (Airline, Departure_airport, Arrival_airport, Departure_date_time, Arrival_date_time, Airline_type, Flight_status)
 VALUES ('Delta Airlines', 'JFK', 'LAX', '2024-05-01 08:00:00', '2024-05-01 11:30:00', 'Domestic', 'On Time'),
        ('United Airlines', 'ORD', 'SFO', '2024-05-02 10:00:00', '2024-05-02 13:30:00', 'Domestic', 'Delayed'),
@@ -209,7 +213,9 @@ INSERT INTO Login_Attempts (user_id, login_time, login_success) VALUES
 
 SELECT * FROM Login_Attempts;
 
+
 -- FUNCTIONS:
+
 -- 1) GET THE average rating for a given flight_id
 CREATE OR REPLACE FUNCTION get_average_rating(p_flight_id INTEGER)
 RETURNS NUMERIC
@@ -303,6 +309,8 @@ $$ Language Plpgsql;
 SELECT GetUserBookings(3);
 
 -- 4) Function to check the seat availability
+
+-- 5) Function to search flights given departure and arrival airport and departure date and number of passengers
 CREATE OR REPLACE FUNCTION search_flights(
     departure_airport_code VARCHAR(255),
     arrival_airport_code VARCHAR(255),
@@ -369,7 +377,7 @@ SELECT * FROM search_flights(
 
 SELECT * FROM flight;
 
--- 5)
+-- 6) Function to get the seats and the ratings given the flightid
 CREATE OR REPLACE FUNCTION get_seat_rating_with_average(p_flight_id INTEGER)
 RETURNS TABLE (
 	flight_id INT,
@@ -403,7 +411,7 @@ $$ LANGUAGE plpgsql;
 DROP function get_seat_rating_with_average;
 SELECT * FROM get_seat_rating_with_average(1);
 
--- 
+-- 7) Function to get the food options for the flight given flight_id
 CREATE OR REPLACE FUNCTION get_food_options_for_flight(p_flight_id INTEGER)
 RETURNS TABLE (
 	flight_id INT,
@@ -433,7 +441,30 @@ END;
 $$ LANGUAGE plpgsql;
 SELECT * FROM get_food_options_for_flight(1);
 
-DROP FUNCTION get_food_options_for_flight;
+
+-- 8) Function to calculate the total payment amount given flight_id and seat_number
+CREATE OR REPLACE FUNCTION calculate_total_payment_amount(p_flight_id INTEGER, p_seat_number VARCHAR(10))
+RETURNS NUMERIC(10, 2)
+AS $$
+DECLARE
+    v_seat_price NUMERIC(10, 2);
+    v_total_cost NUMERIC(10, 2);
+BEGIN
+    -- Get the price of the seat based on flight ID and seat number
+    SELECT price INTO v_seat_price
+    FROM Seat_class
+    WHERE flight_id = p_flight_id AND seat_number = p_seat_number;
+
+    -- Calculate the total cost without any discount
+    v_total_cost := v_seat_price;
+
+    -- Return the total payment amount
+    RETURN v_total_cost;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT calculate_total_payment_amount(1, 'A1') AS total_payment_amount;
+
 -- PROCUDURES:
 
 -- 1) Procedure for booking a flight. 
@@ -753,27 +784,7 @@ $$;
 call insert_payment('credit_card', 500.00);
 SELECT * FROM payment_details;
 
-CREATE OR REPLACE FUNCTION calculate_total_payment_amount(p_flight_id INTEGER, p_seat_number VARCHAR(10))
-RETURNS NUMERIC(10, 2)
-AS $$
-DECLARE
-    v_seat_price NUMERIC(10, 2);
-    v_total_cost NUMERIC(10, 2);
-BEGIN
-    -- Get the price of the seat based on flight ID and seat number
-    SELECT price INTO v_seat_price
-    FROM Seat_class
-    WHERE flight_id = p_flight_id AND seat_number = p_seat_number;
 
-    -- Calculate the total cost without any discount
-    v_total_cost := v_seat_price;
-
-    -- Return the total payment amount
-    RETURN v_total_cost;
-END;
-$$ LANGUAGE plpgsql;
-
-SELECT calculate_total_payment_amount(1, 'A1') AS total_payment_amount;
 
 
 
@@ -835,6 +846,7 @@ GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO security_management;
 
 
 -- Functions and triggers
+
 -- 1)Create a trigger to update average rating when a new review is added
 CREATE OR REPLACE FUNCTION update_average_rating()
 RETURNS TRIGGER AS $$
@@ -875,36 +887,7 @@ FOR EACH ROW
 EXECUTE FUNCTION update_total_cost();
 
 
--- 3) Create a trigger to update booking status based on payment status
-
-CREATE OR REPLACE FUNCTION update_booking_status()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
-        UPDATE booking_information bi
-        SET booking_status = (
-            CASE 
-                WHEN pd.payment_status = 'Success' THEN 'Confirmed'
-                ELSE 'Pending'
-            END
-        )
-        FROM Payment_Details pd
-        WHERE bi.payment_id = pd.payment_id AND bi.booking_id = NEW.booking_id;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Create the trigger on Payment_Details table
-CREATE TRIGGER update_booking_status_trigger
-AFTER INSERT OR UPDATE ON Payment_Details
-FOR EACH ROW
-EXECUTE FUNCTION update_booking_status();
-DROP TRIGGER update_booking_status_trigger ON Payment_Details Cascade;
-
-DROP CASCADE function update_booking_status;
-
--- 4) Trigger to set flight delay status 
+-- 3) Trigger to set flight delay status 
 CREATE TEMPORARY TABLE IF NOT EXISTS Flight_Delay_Status (
     flight_id INT,
     delay_status VARCHAR(20)
@@ -936,7 +919,7 @@ EXECUTE FUNCTION update_flight_delay_status();
 
 
 
--- 5) Create a trigger to enforce referential integrity between tables
+-- 4) Create a trigger to enforce referential integrity between tables
 CREATE OR REPLACE FUNCTION enforce_referential_integrity()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -959,7 +942,7 @@ BEFORE INSERT OR UPDATE ON booking_information
 FOR EACH ROW
 EXECUTE FUNCTION enforce_referential_integrity();
 
--- 6) Trigger to prevent dupliate rows with same user
+-- 5) Trigger to prevent dupliate rows with same user
 CREATE OR REPLACE FUNCTION prevent_duplicate_users()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -981,7 +964,7 @@ BEFORE INSERT OR UPDATE ON users
 FOR EACH ROW
 EXECUTE FUNCTION prevent_duplicate_users();
 
--- 7) Trigger to update last_login_date of the user
+-- 6) Trigger to update last_login_date of the user
 CREATE OR REPLACE FUNCTION update_last_login()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -1000,7 +983,7 @@ FOR EACH ROW
 EXECUTE FUNCTION update_last_login();
 
 
--- 8) Trigger to remove a row from promotions_table is promo code is expired
+-- 7) Trigger to remove a row from promotions_table is promo code is expired
 CREATE OR REPLACE FUNCTION remove_expired_promo_code()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -1036,7 +1019,7 @@ AFTER INSERT ON login_attempts
 FOR EACH ROW
 EXECUTE FUNCTION log_failed_login_attempts();
 
--- 10) Triggers to handle foreign key violations
+-- 8) Triggers to handle foreign key violations
 -- Trigger for Booking_Information Table
 CREATE OR REPLACE FUNCTION check_booking_foreign_keys()
 RETURNS TRIGGER AS $$
