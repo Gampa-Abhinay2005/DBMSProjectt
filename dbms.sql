@@ -12,7 +12,7 @@ CREATE TABLE Users (
     Last_login_date DATE,
     Account_Status VARCHAR(20)
 );
-
+select * from users;
 CREATE TABLE Payment_Details (
     payment_id SERIAL PRIMARY KEY NOT NULL,
     payment_date DATE ,
@@ -303,112 +303,137 @@ $$ Language Plpgsql;
 SELECT GetUserBookings(3);
 
 -- 4) Function to check the seat availability
-CREATE OR REPLACE FUNCTION check_seat_availability(p_flight_id INTEGER, p_seat_number VARCHAR(10))
-RETURNS BOOLEAN
-AS $$
-DECLARE
-    seat_available BOOLEAN;
-BEGIN
-    SELECT CASE
-               WHEN EXISTS (
-                       SELECT 1
-                       FROM Seat_class
-                       WHERE flight_id = p_flight_id AND seat_number = p_seat_number AND availability_status = 'Available'
-                   )
-               THEN TRUE
-               ELSE FALSE
-           END
-    INTO seat_available;
-
-    RETURN seat_available;
-END;
-$$ LANGUAGE plpgsql;
-SELECT check_seat_availability(1, 'A1');
-SELECT * FROM SEAT_Class;
-select * from flight;
-select * from seat_class;
-
--- 5) Function that gives list of flights from given given departure airport to arrival airport
-CREATE OR REPLACE function search_flights(
-	departure_airport_code VARCHAR(255),
-	arrival_airport_code VARCHAR(255),
-	departure_date DATE,
-	num_passengers INT
+CREATE OR REPLACE FUNCTION search_flights(
+    departure_airport_code VARCHAR(255),
+    arrival_airport_code VARCHAR(255),
+    departure_date DATE,
+    num_passengers INT
 )
 RETURNS TABLE(
-	flight_id INT,
-	airline VARCHAR(255),
-	departure_airport VARCHAR(255),
-	arrival_airport VARCHAR(255),
-	departure_date_time TIMESTAMP,
-	arrival_date_time TIMESTAMP,
-	airline_type VARCHAR(50),
-	flight_status VARCHAR(20)
+    flight_id INT,
+    airline VARCHAR(255),
+    departure_airport VARCHAR(255),
+    arrival_airport VARCHAR(255),
+    departure_date_time TIMESTAMP,
+    arrival_date_time TIMESTAMP,
+    airline_type VARCHAR(50),
+    flight_status VARCHAR(20)
 )
 AS $$
 BEGIN
-	RETURN QUERY
-	SELECT 
-		f.flight_id,
-		f.airline,
-		f.departure_airport,
-		f.arrival_airport,
-		f.departure_date_time,
-		f.arrival_date_time,
-		f.airline_type,
-		f.flight_status
-	FROM 
-		flight f
-	WHERE
-		(f.departure_airport=search_flights.departure_airport_code
-		 OR f.arrival_airport = search_flights.arrival_airport_code)
-		AND DATE(f.departure_date_time)=search_flights.departure_date 
-		AND f.flight_id IN (
-			SELECT f1.flight_id FROM Flight f1
-			JOIN Seat_class s on f1.flight_id = s.flight_id
-			WHERE s.availability_status = 'available'
-			GROUP BY f1.flight_id
-			HAVING COUNT(f1.flight_id)>=search_flights.num_passengers
-		)
-	UNION
-	SELECT 
-		f.flight_id,
-		f.airline,
-		f.departure_airport,
-		f.arrival_airport,
-		f.departure_date_time,
-		f.arrival_date_time,
-		f.airline_type,
-		f.flight_status
-	FROM 
-		Multi_flight_connections mfc
-	JOIN 
-		Flight f ON mfc.connected_flight_id = f.flight_id
-	WHERE
-		mfc.original_flight_id IN(
-			SELECT 
-				f.flight_id
-			FROM
-				Flight f
-			WHERE 
-				f.departure_airport = search_flights.departure_airport_code
-				AND f.arrival_airport = search_flights.arrival_airport_code
-				AND DATE(f.departure_date_time) = search_flights.departure_date
-		)
-	ORDER BY
-		departure_date_time ASC;
+    RETURN QUERY
+    SELECT 
+        f.flight_id,
+        f.airline,
+        f.departure_airport,
+        f.arrival_airport,
+        f.departure_date_time,
+        f.arrival_date_time,
+        f.airline_type,
+        f.flight_status
+    FROM 
+        flight f
+    WHERE
+        f.departure_airport = departure_airport_code
+        AND f.arrival_airport = arrival_airport_code
+        AND DATE(f.departure_date_time) = departure_date
+        AND EXISTS (
+            SELECT 1 
+            FROM seat_class s 
+            WHERE s.flight_id = f.flight_id 
+              AND s.availability_status = 'Available'
+            GROUP BY s.flight_id
+            HAVING COUNT(s.flight_id) >= num_passengers
+        )
+    
+    
+    ORDER BY
+        departure_date_time ASC;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
+
+
+
+
+SELECT * FROM flight;
 SELECT * FROM search_flights(
-	departure_airport_code := 'JFK',
-	arrival_airport_code := 'LAX',
-	departure_date := '2024-05-01',
-	num_passengers := 2
+    departure_airport_code := 'JFK',
+    arrival_airport_code := 'LAX',
+    departure_date := '2024-05-01',
+    num_passengers := 2
 );
 
 
 SELECT * FROM flight;
 
+-- 5)
+CREATE OR REPLACE FUNCTION get_seat_rating_with_average(p_flight_id INTEGER)
+RETURNS TABLE (
+	flight_id INT,
+    seat_number VARCHAR(10),
+    type_of_seat VARCHAR(50),
+    seat_price NUMERIC(10,2),
+	availability_status VARCHAR(20),
+    seat_status VARCHAR(20),
+    seat_features VARCHAR(255),
+    average_rating NUMERIC
+)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+		sc.flight_id,
+        sc.seat_number,
+        sc.type_of_seat,
+        sc.Price AS seat_price,
+        sc.availability_status,
+		sc.seat_status,
+		sc.seat_features,
+        get_average_rating(p_flight_id) AS average_rating
+    FROM 
+        Seat_class sc
+    WHERE 
+        sc.flight_id = p_flight_id;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP function get_seat_rating_with_average;
+SELECT * FROM get_seat_rating_with_average(1);
+
+-- 
+CREATE OR REPLACE FUNCTION get_food_options_for_flight(p_flight_id INTEGER)
+RETURNS TABLE (
+	flight_id INT,
+    food_id INT,
+    food_type VARCHAR(50),
+    description TEXT,
+    price DECIMAL(10, 2),
+    availability_status VARCHAR(20),
+    dietary_instructions VARCHAR(255)
+)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+		fo.flight_id,
+        fo.Food_id,
+        fo.food_type,
+        fo.description,
+        fo.Price,
+        fo.availability_status,
+        fo.dietary_instructions
+    FROM 
+        Food_options_table fo
+    WHERE 
+        fo.flight_id = p_flight_id;
+END;
+$$ LANGUAGE plpgsql;
+SELECT * FROM get_food_options_for_flight(1);
+
+DROP FUNCTION get_food_options_for_flight;
 -- PROCUDURES:
 
 -- 1) Procedure for booking a flight. 
@@ -715,6 +740,41 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql;
 
+-- 6)proceedure to add payments from the frontend into the payments table
+CREATE OR REPLACE PROCEDURE insert_payment(
+    IN p_mode_of_payment VARCHAR(50),
+    IN p_amount NUMERIC(10, 2)
+)
+LANGUAGE SQL
+AS $$
+    INSERT INTO payment_details (payment_date, mode_of_payment, payment_amount, payment_status)
+    VALUES (CURRENT_DATE, p_mode_of_payment, p_amount, 'successful');
+$$;
+call insert_payment('credit_card', 500.00);
+SELECT * FROM payment_details;
+
+CREATE OR REPLACE FUNCTION calculate_total_payment_amount(p_flight_id INTEGER, p_seat_number VARCHAR(10))
+RETURNS NUMERIC(10, 2)
+AS $$
+DECLARE
+    v_seat_price NUMERIC(10, 2);
+    v_total_cost NUMERIC(10, 2);
+BEGIN
+    -- Get the price of the seat based on flight ID and seat number
+    SELECT price INTO v_seat_price
+    FROM Seat_class
+    WHERE flight_id = p_flight_id AND seat_number = p_seat_number;
+
+    -- Calculate the total cost without any discount
+    v_total_cost := v_seat_price;
+
+    -- Return the total payment amount
+    RETURN v_total_cost;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT calculate_total_payment_amount(1, 'A1') AS total_payment_amount;
+
 
 
 
@@ -807,7 +867,7 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
+SELECT * FROM Payment_details;
 -- Create the trigger on booking_information table
 CREATE TRIGGER update_total_cost_trigger
 AFTER INSERT OR UPDATE ON booking_information
@@ -840,8 +900,9 @@ CREATE TRIGGER update_booking_status_trigger
 AFTER INSERT OR UPDATE ON Payment_Details
 FOR EACH ROW
 EXECUTE FUNCTION update_booking_status();
+DROP TRIGGER update_booking_status_trigger ON Payment_Details Cascade;
 
-
+DROP CASCADE function update_booking_status;
 
 -- 4) Trigger to set flight delay status 
 CREATE TEMPORARY TABLE IF NOT EXISTS Flight_Delay_Status (
