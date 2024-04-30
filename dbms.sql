@@ -310,6 +310,28 @@ SELECT GetUserBookings(3);
 
 -- 4) Function to check the seat availability
 
+CREATE OR REPLACE FUNCTION check_seat_availability(
+    flight_id_input INTEGER,
+    type_of_seat_input VARCHAR(50)
+) RETURNS INTEGER AS $$
+DECLARE
+    available_seat_count INTEGER;
+BEGIN
+    -- Initialize available_seat_count to 0
+    available_seat_count := 0;
+    
+    -- Check seat availability for the given flight ID and seat type
+    SELECT COUNT(*) INTO available_seat_count
+    FROM Seat_class
+    WHERE flight_id = flight_id_input
+    AND type_of_seat = type_of_seat_input
+    AND availability_status = 'Available';
+    
+    -- Return the count of available seats
+    RETURN available_seat_count;
+END;
+$$ LANGUAGE PLPGSQL;
+SELECT * FROM check_seat_availability(1,'Business');
 -- 5) Function to search flights given departure and arrival airport and departure date and number of passengers
 CREATE OR REPLACE FUNCTION search_flights(
     departure_airport_code VARCHAR(255),
