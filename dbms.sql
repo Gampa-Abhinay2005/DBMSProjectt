@@ -844,16 +844,18 @@ GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO admin;
 
 -- Grant privileges to Customer Support role
 GRANT SELECT ON users, booking_information TO customer_support;
+GRANT SELECT ON payment_details TO customer_support;
 
 -- Grant privileges to Finance role
 GRANT SELECT, UPDATE ON payment_details TO finance;
+-- Grant additional privileges to Finance role
+GRANT DELETE, INSERT ON payment_details TO finance;
 
 -- Grant privileges to Flight Management role
 GRANT ALL PRIVILEGES ON flight, multi_flight_connections TO flight_management;
 
 -- Grant privileges to Review Management role
 GRANT SELECT, UPDATE ON reviews_and_ratings TO review_management;
-
 -- Grant privileges to Booking Management role
 GRANT ALL PRIVILEGES ON booking_information, promotions_table TO booking_management;
 
@@ -1491,78 +1493,131 @@ WHERE
 -- Queries that use different functions and roles
 
 
--- This query calculates and retrieves the total cost of a booking based on the booking ID, which is relevant for financial analysis and reporting.
--- THis is for role finance role
-SELECT 
+-- Activate the Customer Support role
+SET ROLE customer_support;
+
+-- Get detailed information about a specific user's bookings using the GetUserBookings function
+SELECT
     bi.booking_id,
-    CalculateTotalCost(bi.booking_id) AS total_cost
-FROM 
-    booking_information bi
-WHERE 
-    bi.booking_id = 4;
+    bi.booking_date,
+
+    GetUserBookings(1) AS ub
+FROM
+booking_information bi;
+
+
+
+
+-- 
+-- Activate the Review Management role
+SET ROLE review_management;
+
+-- Get the average rating for each product using the GetAverage function
+SELECT
+    flight_id,
+    Get_Average_rating(rating) AS average_rating
+FROM
+    reviews_and_ratings
+GROUP BY
+    flight_id,average_rating;
+
+
+SET ROLE inventory_management;
+
+-- Get food options for a specific flight using the get_food_options_for_flight function
+SELECT
+    flight_id,
+    food_id,
+    food_type,
+    price,
+    availability_status
+FROM
+    get_food_options_for_flight(2) AS fo
+WHERE
+    flight_id = 2;
+SET role admin;
+SET ROLE flight_management;
+
+-- Check seat availability for a specific flight and seat type using the check_seat_availability function
+SELECT
+    flight_id,
+    seat_number,
+    type_of_seat,
+    availability_status,
+    check_seat_availability(1, 'Economy') AS available_seats
+FROM
+    seat_class
+WHERE
+    flight_id = 1
+    AND type_of_seat = 'Economy';
+
+
+SET ROLE customer_support;
+
+-- Get detailed information about a specific user's bookings using the GetUserBookings function
+SELECT
+    bi.booking_id,
+    bi.booking_date,
+    pd.payment_status
+FROM
+    GetUserBookings(1) AS ub
+JOIN booking_information bi ON ub.booking_id = bi.booking_id
+JOIN payment_details pd ON bi.payment_id = pd.payment_id;
+
+
+
+
+-- Activate the Finance role
+SET ROLE finance;
+
+-- Calculate the total cost of all bookings made in the last month using CalculateTotalCost function
+SELECT
+    SUM(total_cost) AS total_monthly_cost
+FROM (
+    SELECT
+        CalculateTotalCost(booking_id) AS total_cost
+    FROM
+        booking_information
+    WHERE
+        booking_date >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month'
+) AS monthly_bookings;
+
+
+-- Activate the Review Management role
+SET ROLE review_management;
+
+-- Get average ratings and count of reviews for each flight using get_average_rating function
+SELECT
+    f.flight_id,
+    f.airline,
+    f.departure_airport,
+    f.arrival_airport,
+    AVG(get_average_rating(r.flight_id)) AS average_rating,
+    COUNT(r.review_id) AS total_reviews
+FROM
+    flight f
+LEFT JOIN reviews_and_ratings r ON f.flight_id = r.flight_id
+GROUP BY
+    f.flight_id, f.airline, f.departure_airport, f.arrival_airport;
+
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+-- Activate the Inventory Management role
+SET ROLE inventory_management;
+
+-- Get seat class details and ratings for all flights using get_seat_rating_with_average function
+SELECT
+    s.flight_id,
+    s.type_of_seat,
+    s.seat_number,
+    s.price,
+    s.availability_status,
+    s.seat_status,
+    s.seat_features,
+    AVG(r.rating) AS average_rating
+FROM
+    seat_class s
+LEFT JOIN reviews_and_ratings r ON s.flight_id = r.flight_id
+GROUP BY
+    s.flight_id, s.type_of_seat, s.seat_number, s.price, s.availability_status, s.seat_status, s.seat_features;
 
 
