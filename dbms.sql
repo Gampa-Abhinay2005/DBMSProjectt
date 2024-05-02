@@ -67,7 +67,7 @@ CREATE TABLE Multi_flight_connections (
     Layover_duration INTERVAL,
     Layover_airport VARCHAR(255)
 );
-
+DROP TABLE multi_flight_connections CASCADE;
 CREATE TABLE Passengers_list (
     user_id INTEGER REFERENCES Users(user_id),
     booking_id INTEGER REFERENCES Booking_Information(booking_id),
@@ -126,8 +126,151 @@ VALUES ('Delta Airlines', 'JFK', 'LAX', '2024-05-01 08:00:00', '2024-05-01 11:30
        ('Emirates', 'DXB', 'JFK', '2024-05-03 15:00:00', '2024-05-03 20:30:00', 'International', 'On Time'),
        ('British Airways', 'LHR', 'JFK', '2024-05-04 14:00:00', '2024-05-04 17:30:00', 'International', 'On Time'),
        ('Air France', 'CDG', 'LAX', '2024-05-05 16:00:00', '2024-05-05 20:30:00', 'International', 'On Time');
+INSERT INTO Flight(Airline, Departure_airport, Arrival_airport, Departure_date_time, Arrival_date_time, Airline_type, Flight_status)
+VALUES ('Delta Airlines', 'JFK', 'LAX', '2024-05-10 8:00:00', '2024-05-10 11:30:00', 'Domestic', 'On Time'),
+		('Delta Airlines', 'LAX', 'SFO', '2024-05-10 14:30:00', '2024-05-10 16:30:00', 'Domestic', 'On Time');
+INSERT INTO Flight(Airline, Departure_airport, Arrival_airport, Departure_date_time, Arrival_date_time, Airline_type, Flight_status)
+VALUES 
+('American Airlines', 'LAX', 'ORD', '2024-05-11 10:00:00', '2024-05-11 16:30:00', 'Domestic', 'On Time'),
+('United Airlines', 'SFO', 'DEN', '2024-05-11 12:30:00', '2024-05-11 15:00:00', 'Domestic', 'On Time'),
+('Southwest Airlines', 'ATL', 'HOU', '2024-05-11 14:00:00', '2024-05-11 16:30:00', 'Domestic', 'On Time'),
+('JetBlue Airways', 'BOS', 'MCO', '2024-05-11 9:30:00', '2024-05-11 13:00:00', 'Domestic', 'On Time'),
+('Delta Airlines', 'SEA', 'LAS', '2024-05-11 11:15:00', '2024-05-11 14:00:00', 'Domestic', 'On Time'),
+('Alaska Airlines', 'PDX', 'SAN', '2024-05-11 13:45:00', '2024-05-11 16:15:00', 'Domestic', 'On Time'),
+('Frontier Airlines', 'MIA', 'JFK', '2024-05-11 12:00:00', '2024-05-11 15:30:00', 'Domestic', 'On Time'),
+('Spirit Airlines', 'DFW', 'ORD', '2024-05-11 14:45:00', '2024-05-11 17:30:00', 'Domestic', 'On Time'),
+('Allegiant Air', 'PHX', 'LAS', '2024-05-11 15:30:00', '2024-05-11 18:00:00', 'Domestic', 'On Time'),
+('Hawaiian Airlines', 'HNL', 'LAX', '2024-05-11 17:00:00', '2024-05-11 21:30:00', 'Domestic', 'On Time');
+INSERT INTO Flight(Airline, Departure_airport, Arrival_airport, Departure_date_time, Arrival_date_time, Airline_type, Flight_status)
+VALUES 
+('Delta Airlines', 'JFK', 'LAX', '2024-05-20 08:00:00', '2024-05-20 11:30:00', 'Domestic', 'On Time'),
+('Delta Airlines', 'LAX', 'SFO', '2024-05-20 14:30:00', '2024-05-20 16:30:00', 'Domestic', 'On Time'),
+('United Airlines', 'SFO', 'JFK', '2024-05-20 12:00:00', '2024-05-20 18:30:00', 'Domestic', 'On Time'),
+('American Airlines', 'ORD', 'LAX', '2024-05-20 09:00:00', '2024-05-20 13:30:00', 'Domestic', 'On Time'),
+('American Airlines', 'LAX', 'JFK', '2024-05-20 16:00:00', '2024-05-20 22:30:00', 'Domestic', 'On Time'),
+('JetBlue Airways', 'JFK', 'MIA', '2024-05-20 10:30:00', '2024-05-20 13:30:00', 'Domestic', 'On Time'),
+('JetBlue Airways', 'MIA', 'LAX', '2024-05-20 14:00:00', '2024-05-20 17:00:00', 'Domestic', 'On Time'),
+('Southwest Airlines', 'LAX', 'LAS', '2024-05-20 09:30:00', '2024-05-20 10:30:00', 'Domestic', 'On Time'),
+('Southwest Airlines', 'LAS', 'SFO', '2024-05-20 11:00:00', '2024-05-20 13:00:00', 'Domestic', 'On Time'),
+('Alaska Airlines', 'SFO', 'SEA', '2024-05-20 14:30:00', '2024-05-20 16:00:00', 'Domestic', 'On Time');
 
 SELECT * FROM flight;
+SELECT * FROM flight;
+INSERT INTO Seat_class(flight_id, type_of_seat, seat_number, Price, availability_status, seat_status, seat_features)
+VALUES 
+(7,'Economy', 'E1', 200.00, 'Available', 'Occupied', 'Window seat'),
+(7,'Economy', 'E2', 200.00, 'Available', 'Empty', 'Aisle seat'),
+(8,'Economy', 'E3', 250.00, 'Available', 'Empty', 'Window seat');
+INSERT INTO Seat_class(flight_id, type_of_seat, seat_number, Price, availability_status, seat_status, seat_features)
+VALUES 
+(9, 'Economy', 'E4', 230.00, 'Available', 'Empty', 'Middle seat'),
+(9, 'Business', 'B1', 500.00, 'Available', 'Occupied', 'Lie-flat seat'),
+(10, 'Economy', 'E5', 240.00, 'Available', 'Empty', 'Window seat'),
+(10, 'First Class', 'F1', 700.00, 'Available', 'Empty', 'Luxury suite seat'),
+(11, 'Economy', 'E6', 220.00, 'Available', 'Empty', 'Aisle seat'),
+(11, 'Business', 'B2', 550.00, 'Available', 'Empty', 'Reclining seat'),
+(12, 'Economy', 'E7', 210.00, 'Available', 'Empty', 'Aisle seat'),
+(12, 'First Class', 'F2', 750.00, 'Available', 'Empty', 'Private cabin seat'),
+(13, 'Economy', 'E8', 260.00, 'Available', 'Empty', 'Middle seat'),
+(13, 'Business', 'B3', 600.00, 'Available', 'Empty', 'Premium seat'),
+(14, 'Economy', 'E9', 270.00, 'Available', 'Empty', 'Window seat'),
+(14, 'First Class', 'F3', 800.00, 'Available', 'Empty', 'Luxury suite seat'),
+(15, 'Economy', 'E10', 280.00, 'Available', 'Empty', 'Middle seat'),
+(15, 'Business', 'B4', 650.00, 'Available', 'Empty', 'Reclining seat'),
+(16, 'Economy', 'E11', 290.00, 'Available', 'Empty', 'Aisle seat'),
+(16, 'First Class', 'F4', 850.00, 'Available', 'Empty', 'Private cabin seat'),
+(17, 'Economy', 'E12', 300.00, 'Available', 'Empty', 'Window seat'),
+(17, 'Business', 'B5', 700.00, 'Available', 'Empty', 'Premium seat'),
+(18, 'Economy', 'E13', 310.00, 'Available', 'Empty', 'Middle seat'),
+(18, 'First Class', 'F5', 900.00, 'Available', 'Empty', 'Luxury suite seat');
+INSERT INTO Seat_class(flight_id, type_of_seat, seat_number, Price, availability_status, seat_status, seat_features)
+VALUES 
+(18, 'Economy', 'E14', 320.00, 'Available', 'Empty', 'Middle seat'),
+(18, 'Business', 'B6', 950.00, 'Available', 'Empty', 'Luxury suite seat'),
+(19, 'Economy', 'E15', 330.00, 'Available', 'Empty', 'Window seat'),
+(19, 'First Class', 'F6', 1000.00, 'Available', 'Empty', 'Private cabin seat'),
+(20, 'Economy', 'E16', 340.00, 'Available', 'Empty', 'Middle seat'),
+(20, 'Business', 'B7', 900.00, 'Available', 'Empty', 'Reclining seat'),
+(21, 'Economy', 'E17', 310.00, 'Available', 'Empty', 'Window seat'),
+(21, 'First Class', 'F7', 1050.00, 'Available', 'Empty', 'Luxury suite seat'),
+(22, 'Economy', 'E18', 330.00, 'Available', 'Empty', 'Middle seat'),
+(22, 'Business', 'B8', 920.00, 'Available', 'Empty', 'Premium seat'),
+(23, 'Economy', 'E19', 320.00, 'Available', 'Empty', 'Aisle seat'),
+(23, 'First Class', 'F8', 1100.00, 'Available', 'Empty', 'Private cabin seat'),
+(24, 'Economy', 'E20', 340.00, 'Available', 'Empty', 'Window seat'),
+(24, 'Business', 'B9', 950.00, 'Available', 'Empty', 'Reclining seat'),
+(25, 'Economy', 'E21', 310.00, 'Available', 'Empty', 'Middle seat'),
+(25, 'First Class', 'F9', 1000.00, 'Available', 'Empty', 'Luxury suite seat'),
+(26, 'Economy', 'E22', 320.00, 'Available', 'Empty', 'Aisle seat'),
+(26, 'Business', 'B10', 900.00, 'Available', 'Empty', 'Premium seat'),
+(27, 'Economy', 'E23', 330.00, 'Available', 'Empty', 'Window seat'),
+(27, 'First Class', 'F10', 1050.00, 'Available', 'Empty', 'Private cabin seat'),
+(28, 'Economy', 'E24', 310.00, 'Available', 'Empty', 'Middle seat'),
+(28, 'Business', 'B11', 920.00, 'Available', 'Empty', 'Reclining seat');
+
+INSERT INTO Food_options_table(flight_id, food_type, description, Price, availability_status, dietary_instructions, food_status)
+VALUES 
+(7,'Meal', 'Chicken Sandwich', 15.00, 'Available', 'No allergies', 'Served'),
+(8,'Snack', 'Bag of Chips', 5.00, 'Available', 'No dietary restrictions', 'Served'),
+(7,'Meal', 'Vegetarian Pasta', 20.00, 'Available', 'Vegetarian', 'Served');
+INSERT INTO Food_options_table(flight_id, food_type, description, Price, availability_status, dietary_instructions, food_status)
+VALUES 
+(9, 'Meal', 'Beef Steak', 25.00, 'Available', 'No allergies', 'Served'),
+(9, 'Snack', 'Cookies', 7.00, 'Available', 'No dietary restrictions', 'Served'),
+(10, 'Meal', 'Salmon Fillet', 30.00, 'Available', 'Pescatarian', 'Served'),
+(10, 'Snack', 'Fruit Cup', 8.00, 'Available', 'No dietary restrictions', 'Served'),
+(11, 'Meal', 'Vegetable Stir Fry', 20.00, 'Available', 'Vegetarian', 'Served'),
+(11, 'Snack', 'Pretzels', 6.00, 'Available', 'No dietary restrictions', 'Served'),
+(12, 'Meal', 'Lobster Tail', 40.00, 'Available', 'No allergies', 'Served'),
+(12, 'Snack', 'Granola Bar', 5.00, 'Available', 'No dietary restrictions', 'Served'),
+(13, 'Meal', 'Pork Chop', 28.00, 'Available', 'No allergies', 'Served'),
+(13, 'Snack', 'Cheese Platter', 10.00, 'Available', 'No dietary restrictions', 'Served'),
+(14, 'Meal', 'Chicken Alfredo', 35.00, 'Available', 'No allergies', 'Served'),
+(14, 'Snack', 'Mixed Nuts', 9.00, 'Available', 'No dietary restrictions', 'Served'),
+(15, 'Meal', 'Steak and Potatoes', 45.00, 'Available', 'No allergies', 'Served'),
+(15, 'Snack', 'Chocolate Bar', 4.00, 'Available', 'No dietary restrictions', 'Served'),
+(16, 'Meal', 'Shrimp Scampi', 32.00, 'Available', 'No allergies', 'Served'),
+(16, 'Snack', 'Trail Mix', 6.00, 'Available', 'No dietary restrictions', 'Served'),
+(17, 'Meal', 'BBQ Ribs', 38.00, 'Available', 'No allergies', 'Served'),
+(17, 'Snack', 'Popcorn', 3.00, 'Available', 'No dietary restrictions', 'Served'),
+(18, 'Meal', 'Grilled Salmon', 40.00, 'Available', 'Pescatarian', 'Served'),
+(18, 'Snack', 'Pretzel Sticks', 5.00, 'Available', 'No dietary restrictions', 'Served');
+
+INSERT INTO Food_options_table(flight_id, food_type, description, Price, availability_status, dietary_instructions, food_status)
+VALUES 
+(18, 'Meal', 'Beef Steak', 30.00, 'Available', 'No allergies', 'Served'),
+(18, 'Snack', 'Cookies', 8.00, 'Available', 'No dietary restrictions', 'Served'),
+(19, 'Meal', 'Chicken Alfredo', 35.00, 'Available', 'No allergies', 'Served'),
+(19, 'Snack', 'Mixed Nuts', 9.00, 'Available', 'No dietary restrictions', 'Served'),
+(20, 'Meal', 'Shrimp Scampi', 32.00, 'Available', 'No allergies', 'Served'),
+(20, 'Snack', 'Trail Mix', 7.00, 'Available', 'No dietary restrictions', 'Served'),
+(21, 'Meal', 'BBQ Ribs', 38.00, 'Available', 'No allergies', 'Served'),
+(21, 'Snack', 'Popcorn', 5.00, 'Available', 'No dietary restrictions', 'Served'),
+(22, 'Meal', 'Grilled Salmon', 40.00, 'Available', 'Pescatarian', 'Served'),
+(22, 'Snack', 'Pretzel Sticks', 6.00, 'Available', 'No dietary restrictions', 'Served'),
+(23, 'Meal', 'Vegetable Stir Fry', 20.00, 'Available', 'Vegetarian', 'Served'),
+(23, 'Snack', 'Pretzels', 4.00, 'Available', 'No dietary restrictions', 'Served'),
+(24, 'Meal', 'Lobster Tail', 45.00, 'Available', 'No allergies', 'Served'),
+(24, 'Snack', 'Granola Bar', 5.00, 'Available', 'No dietary restrictions', 'Served'),
+(25, 'Meal', 'Pork Chop', 28.00, 'Available', 'No allergies', 'Served'),
+(25, 'Snack', 'Cheese Platter', 10.00, 'Available', 'No dietary restrictions', 'Served'),
+(26, 'Meal', 'Chicken Sandwich', 15.00, 'Available', 'No allergies', 'Served'),
+(26, 'Snack', 'Bag of Chips', 4.00, 'Available', 'No dietary restrictions', 'Served'),
+(27, 'Meal', 'Vegetarian Pasta', 20.00, 'Available', 'Vegetarian', 'Served'),
+(27, 'Snack', 'Fruit Cup', 7.00, 'Available', 'No dietary restrictions', 'Served'),
+(28, 'Meal', 'Salmon Fillet', 30.00, 'Available', 'Pescatarian', 'Served'),
+(28, 'Snack', 'Chocolate Bar', 3.00, 'Available', 'No dietary restrictions', 'Served');
+
+
+INSERT INTO Multi_flight_connections (original_flight_id, connected_flight_id, leg_number, layover_duration, layover_airport)
+VALUES (7, 8, 1, '3 hours', 'LAX');
+INSERT INTO Multi_flight_connections (original_flight_id, connected_flight_id, leg_number, layover_duration, layover_airport)
+VALUES (19, 20,1,'3 hours', 'LAX'),
+       (22, 23, 1, '2.5 hours', 'LAX'),
+	   (26, 27, 1, '0.5 hours', 'LAX'),
+	   (27,28,1, '1.5	hours', 'SFO');
+SELECT * FROM multi_flight_connections;
+SELECT * FROM flight; 
 
 INSERT INTO Users (userName, password, first_name, last_name, address, phone_number, age, Email, RegistrationDate, Last_login_date, Account_Status)
 VALUES ('john_doe', 'password123', 'John', 'Doe', '123 Main St, Anytown', '123-456-7890', 30, 'john.doe@example.com', '2024-04-01', '2024-04-25', 'Active'),
@@ -161,12 +304,16 @@ VALUES (1, 1, 'Great flight experience!', '2024-05-01', 5, 'Approved'),    -- Re
        (5, 5, 'On time and comfortable.', '2024-05-05', 5, 'Approved'); -- Review by Chris Evans for Air France flight
 
 SELECT * FROM Reviews_and_ratings;
+-- Delta Airlines (JFK -> LAX) connected to Emirates (LAX -> DXB)
 
-INSERT INTO Multi_flight_connections (original_flight_id, connected_flight_id, Leg_number, Layover_duration, Layover_airport)
-VALUES (1, 2, 1, '2 hours', 'ORD'),  -- Connection from Delta Airlines to United Airlines at Chicago
-       (3, 4, 1, '3 hours', 'JFK'),  -- Connection from Emirates to British Airways at JFK
-		(2, 3, 1, '2 hours', 'ORD'),  -- Connection from United Airlines to Emirates at Chicago
-       (4, 5, 1, '4 hours', 'JFK');  -- Connection from British Airways to Air France at JFK
+
+-- Emirates (LAX -> DXB) connected to Delta Airlines (DXB -> JFK)
+INSERT INTO Multi_flight_connections (original_flight_id, connected_flight_id, leg_number, layover_duration, layover_airport)
+VALUES ((SELECT flight_id FROM Flight WHERE Airline = 'Emirates' AND Departure_airport = 'LAX' AND Arrival_airport = 'DXB'), 
+        (SELECT flight_id FROM Flight WHERE Airline = 'Delta Airlines' AND Departure_airport = 'DXB' AND Arrival_airport = 'JFK'), 
+        1, '2 hours', 'DXB');
+
+SELECT * FROM seat_class;
 select * FROM Multi_flight_connections;
 INSERT INTO Passengers_list (user_id, booking_id, name, age, gender, passenger_type)
 VALUES (1, 1, 'John Doe', 30, 'Male', 'Adult'),
@@ -174,7 +321,7 @@ VALUES (1, 1, 'John Doe', 30, 'Male', 'Adult'),
        (3, 3, 'Mike Jones', 35, 'Male', 'Adult'),
        (4, 4, 'Sarah Brown', 28, 'Female', 'Adult'),
        (5, 5, 'Chris Evans', 40, 'Male', 'Adult');
-
+SELECT * FROM check_seat_avilability1(27);
 SELECT * FROM passengers_list;
 
 INSERT INTO Seat_class (flight_id, type_of_seat, seat_number, Price, availability_status, seat_status, seat_features)
@@ -307,7 +454,29 @@ END;
 $$ Language Plpgsql;
 
 SELECT GetUserBookings(3);
+CREATE OR REPLACE FUNCTION check_seat_availability1(flight_id_param INTEGER)
+RETURNS BOOLEAN AS $$
+DECLARE
+    available_seats_count INTEGER;
+BEGIN
+    -- Count the number of available seats for the specified flight ID
+    SELECT COUNT(*) INTO available_seats_count
+    FROM seat_class
+    WHERE 
+	seat_class.flight_id = flight_id_param
+      AND (seat_class.availability_status = 'Available');
 
+    -- Check if there are available seats (count > 0)
+    IF available_seats_count > 0 THEN
+        RETURN TRUE; -- Seats are available
+    ELSE
+        RETURN FALSE; -- No seats available
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+SELECT * FROM check_seat_availability1(27);
+SELECT * FROM seat_class;
+SELECT * FROM flight;
 -- 4) Function to check the seat availability
 
 CREATE OR REPLACE FUNCTION check_seat_availability(
@@ -383,21 +552,104 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-
-
-
+drop function search_flights;
 
 
 SELECT * FROM flight;
 SELECT * FROM search_flights(
-    departure_airport_code := 'JFK',
+    departure_airport_code := 'DXB',
     arrival_airport_code := 'LAX',
     departure_date := '2024-05-01',
     num_passengers := 2
 );
 
+CREATE OR REPLACE FUNCTION search_multi_connected_flights1(
+    departure_airport_code VARCHAR(255),
+    arrival_airport_code VARCHAR(255),
+    departure_date DATE,
+    num_passengers INT
+)
+RETURNS TABLE(
+    original_flight_id INT,
+    original_airline VARCHAR(255),
+    original_departure_airport VARCHAR(255),
+    original_arrival_airport VARCHAR(255),
+    original_departure_date_time TIMESTAMP,
+    original_arrival_date_time TIMESTAMP,
+    original_airline_type VARCHAR(50),
+    original_flight_status VARCHAR(20),
+    connected_flight_id INT,
+    connected_airline VARCHAR(255),
+    connected_departure_airport VARCHAR(255),
+    connected_arrival_airport VARCHAR(255),
+    connected_departure_date_time TIMESTAMP,
+    connected_arrival_date_time TIMESTAMP,
+    connected_airline_type VARCHAR(50),
+    connected_flight_status VARCHAR(20),
+    connection_id INT,
+    leg_number INT,
+    layover_duration INTERVAL,
+    layover_airport VARCHAR(255)
+)
+AS $$
+BEGIN
+    RAISE NOTICE 'Inside function before query execution';
+
+    RETURN QUERY
+    -- Multi-connected flights
+    SELECT 
+        f.flight_id AS original_flight_id,
+        f.airline AS original_airline,
+        f.departure_airport AS original_departure_airport,
+        f.arrival_airport AS original_arrival_airport,
+        f.departure_date_time AS original_departure_date_time,
+        f.arrival_date_time AS original_arrival_date_time,
+        f.airline_type AS original_airline_type,
+        f.flight_status AS original_flight_status,
+        f2.flight_id AS connected_flight_id,
+        f2.airline AS connected_airline,
+        f2.departure_airport AS connected_departure_airport,
+        f2.arrival_airport AS connected_arrival_airport,
+        f2.departure_date_time AS connected_departure_date_time,
+        f2.arrival_date_time AS connected_arrival_date_time,
+        f2.airline_type AS connected_airline_type,
+        f2.flight_status AS connected_flight_status,
+        m.connectionid AS connection_id,
+        m.leg_number AS leg_number,
+        m.layover_duration AS layover_duration,
+        m.layover_airport AS layover_airport
+    FROM 
+        flight f
+    JOIN multi_flight_connections m ON f.flight_id = m.original_flight_id
+    JOIN flight f2 ON f2.flight_id = m.connected_flight_id
+	WHERE f.departure_airport = departure_airport_code AND
+	f.arrival_airport = f2.departure_airport
+	AND f.arrival_airport = m.layover_airport
+	AND departure_date= DATE(f.departure_date_time);
+   
+END;
+$$ LANGUAGE plpgsql;
+SELECT * FROM multi_flight_connections;
+SELECT * FROM multi_flight_connections;
+select * from FLIGHT WHERE FLIGHT_ID = 7;
+SELECT * FROM search_multi_connected_flights1(
+    'JFK'::VARCHAR, 
+    'SFO'::VARCHAR, 
+    '2024-05-10' :: DATE,
+    1::INT
+);
+SELECT * FROM multi_flight_connections;
+SELECT * FROM flight;
+
 
 SELECT * FROM flight;
+SELECT * FROM search_multi_connected_flights(
+    departure_airport_code := 'DXB',
+    arrival_airport_code := 'LAX',
+    departure_date := '2024-05-01',
+    num_passengers := 2
+);
+
 
 -- 6) Function to get the seats and the ratings given the flightid
 CREATE OR REPLACE FUNCTION get_seat_rating_with_average(p_flight_id INTEGER)
@@ -434,59 +686,115 @@ DROP function get_seat_rating_with_average;
 SELECT * FROM get_seat_rating_with_average(1);
 
 -- 7) Function to get the food options for the flight given flight_id
-CREATE OR REPLACE FUNCTION get_food_options_for_flight(p_flight_id INTEGER)
+CREATE OR REPLACE FUNCTION get_food_options_for_flight(
+    p_flight_id INTEGER,
+    p_seat_number VARCHAR(10),
+    p_type_of_seat VARCHAR(50)
+)
 RETURNS TABLE (
-	flight_id INT,
-    food_id INT,
+    flight_id INTEGER,
+    food_id INTEGER,
     food_type VARCHAR(50),
     description TEXT,
-    price DECIMAL(10, 2),
+    price NUMERIC(10, 2),
     availability_status VARCHAR(20),
-    dietary_instructions VARCHAR(255)
+    dietary_instructions VARCHAR(255),
+    seat_number VARCHAR(10),
+    type_of_seat VARCHAR(50)
 )
 AS $$
 BEGIN
     RETURN QUERY
     SELECT 
-		fo.flight_id,
+        fo.flight_id,
         fo.Food_id,
         fo.food_type,
         fo.description,
         fo.Price,
         fo.availability_status,
-        fo.dietary_instructions
+        fo.dietary_instructions,
+        p_seat_number AS seat_number,
+        p_type_of_seat AS type_of_seat
     FROM 
         Food_options_table fo
     WHERE 
         fo.flight_id = p_flight_id;
 END;
 $$ LANGUAGE plpgsql;
-SELECT * FROM get_food_options_for_flight(1);
-
-
+DROP function get_food_options_for_flight;
+SELECT * FROM get_food_options_for_flight(5, 'G1', 'Economy');
 -- 8) Function to calculate the total payment amount given flight_id and seat_number
-CREATE OR REPLACE FUNCTION calculate_total_payment_amount(p_flight_id INTEGER, p_seat_number VARCHAR(10))
-RETURNS NUMERIC(10, 2)
+CREATE OR REPLACE FUNCTION calculate_total_payment_amount(
+    p_flight_id INTEGER,
+    p_seat_number VARCHAR(10)
+) RETURNS TABLE (
+    total_cost NUMERIC(10, 2),
+    flight_id INTEGER,
+    departure_date DATE,
+    arrival_date DATE,
+	seat_number VARCHAR(10)
+)
 AS $$
-DECLARE
-    v_seat_price NUMERIC(10, 2);
-    v_total_cost NUMERIC(10, 2);
 BEGIN
-    -- Get the price of the seat based on flight ID and seat number
-    SELECT price INTO v_seat_price
-    FROM Seat_class
-    WHERE flight_id = p_flight_id AND seat_number = p_seat_number;
-
-    -- Calculate the total cost without any discount
-    v_total_cost := v_seat_price;
-
-    -- Return the total payment amount
-    RETURN v_total_cost;
+    RETURN QUERY
+    SELECT
+        price AS total_cost,
+        F.flight_id,
+        DATE(F.departure_date_time),
+        DATE(F.arrival_date_time),
+		SC.seat_number
+    FROM
+        Seat_class SC
+    INNER JOIN
+        Flight F ON SC.flight_id = F.flight_id
+    WHERE
+        SC.flight_id = p_flight_id
+        AND SC.seat_number = p_seat_number;
 END;
 $$ LANGUAGE plpgsql;
-
+DROP FUNCTION calculate_total_payment_amount;
 SELECT calculate_total_payment_amount(1, 'A1') AS total_payment_amount;
 
+
+-- 
+CREATE OR REPLACE FUNCTION calculate_total_payment_amount_given_food(
+    p_flight_id INTEGER,
+    p_food_id INTEGER,
+    p_seat_num VARCHAR(10),
+    p_type_of_seat VARCHAR(50)
+) RETURNS TABLE (
+    total_cost NUMERIC(10, 2),
+    flight_id INTEGER,
+    departure_date DATE,
+    arrival_date DATE,
+    seat_number VARCHAR(10),
+    food_id INTEGER,
+    food_type VARCHAR(50)
+)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        (SC.price + COALESCE(FO.price, 0)) AS total_cost,
+        F.flight_id,
+        DATE(F.departure_date_time),
+        DATE(F.arrival_date_time),
+        SC.seat_number,
+        p_food_id,
+        FO.food_type
+    FROM
+        Seat_class SC
+    INNER JOIN
+        Flight F ON SC.flight_id = F.flight_id
+    LEFT JOIN
+        Food_options_table FO ON FO.flight_id = F.flight_id AND FO.food_id = p_food_id
+    WHERE
+        SC.flight_id = p_flight_id
+        AND SC.seat_number = p_seat_num
+        AND SC.type_of_seat = p_type_of_seat;
+END;
+$$ LANGUAGE plpgsql;
+SELECT * FROM flight;
 -- PROCUDURES:
 
 -- 1) Procedure for booking a flight. 
@@ -889,9 +1197,7 @@ CREATE TRIGGER update_average_rating_trigger
 AFTER INSERT OR UPDATE ON Reviews_and_Ratings
 FOR EACH ROW
 EXECUTE FUNCTION update_average_rating();
- 
 -- 2) Create a trigger to update total cost when a booking information is updated
-
 CREATE OR REPLACE FUNCTION update_total_cost()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -940,8 +1246,8 @@ CREATE TRIGGER update_flight_delay_status_trigger
 BEFORE INSERT OR UPDATE ON Flight
 FOR EACH ROW
 EXECUTE FUNCTION update_flight_delay_status();
-
-
+DROP trigger update_flight_delay_status_trigger ON flight cascade;
+DROP FUNCTION update_flight_delay_status;
 
 -- 4) Create a trigger to enforce referential integrity between tables
 CREATE OR REPLACE FUNCTION enforce_referential_integrity()
@@ -965,7 +1271,8 @@ CREATE TRIGGER enforce_referential_integrity_trigger
 BEFORE INSERT OR UPDATE ON booking_information
 FOR EACH ROW
 EXECUTE FUNCTION enforce_referential_integrity();
-
+DROP FUNCTION enforce_referential_integrity;
+DROP trigger enforce_referential_integrity_trigger ON booking_information CASCADE;
 -- 5) Trigger to prevent dupliate rows with same user
 CREATE OR REPLACE FUNCTION prevent_duplicate_users()
 RETURNS TRIGGER AS $$
@@ -994,7 +1301,7 @@ RETURNS TRIGGER AS $$
 BEGIN
     -- Update last_login_date for the user who just logged in
     UPDATE Users
-    SET last_login_date = DATETIME(CURRENT_TIMESTAMP)
+    SET last_login_date = CURRENT_TIMESTAMP  -- Use CURRENT_TIMESTAMP directly
     WHERE user_id = NEW.user_id;
 
     RETURN NEW;
@@ -1005,7 +1312,7 @@ CREATE TRIGGER on_login_attempt
 AFTER INSERT ON Login_Attempts
 FOR EACH ROW
 EXECUTE FUNCTION update_last_login();
-
+DROP Trigger on_login_attempt on login_attempts CASCADE;
 
 -- 7) Trigger to remove a row from promotions_table is promo code is expired
 CREATE OR REPLACE FUNCTION remove_expired_promo_code()
@@ -1621,3 +1928,16 @@ GROUP BY
     s.flight_id, s.type_of_seat, s.seat_number, s.price, s.availability_status, s.seat_status, s.seat_features;
 
 
+
+
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
