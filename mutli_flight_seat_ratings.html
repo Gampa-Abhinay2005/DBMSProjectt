@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seat Ratings for Original flight</title>
+    <style>
+        body {
+            background-image: url('https://wallpaperaccess.com/full/1264507.jpg');
+
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        h1, h2 {
+            color: #007bff;
+            text-align: center;
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+        .book-button, .addons-button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .book-button:hover, .addons-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Seat Ratings:</h1>
+    
+    <h2>Original Flight</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Original Flight ID</th>
+                <th>Seat Number</th>
+                <th>Type of Seat</th>
+                <th>Seat Price</th>
+                <th>Availability Status</th>
+                <th>Seat Status</th>
+                <th>Seat Features</th>
+                <th>Average Rating</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for seat in original_seat_ratings %}
+            <tr>
+                <td>{{ seat[0] }}</td>
+                <td>{{ seat[1] }}</td>
+                <td>{{ seat[2] }}</td>
+                <td>${{ seat[3] }}</td>
+                <td>{{ seat[4] }}</td>
+                <td>{{ seat[5] }}</td>
+                <td>{{ seat[6] }}</td>
+                <td>{{ seat[7] }}</td>
+                <td>
+                    <!-- Form for booking the seat on original flight -->
+                    <form action="/book_seat11" method="post">
+                        <input type="hidden" name="seat_number" value="{{ seat[1] }}">
+                        <input type="hidden" name="flight_id" value="{{ seat[0] }}">
+                        <button type="submit" class="book-button">Book Seat</button>
+                    </form>
+                    <!-- Form for adding food addons for original flight -->
+                    <form action="/add_food_addons_11" method="post">
+                        <input type="hidden" name="flight_id" value="{{ seat[0] }}">
+                        <input type="hidden" name="seat_number" value="{{ seat[1] }}">
+                        <input type="hidden" name="type_of_seat" value="{{ seat[2] }}">
+                        <button type="submit" class="addons-button">Add Food Addons</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
