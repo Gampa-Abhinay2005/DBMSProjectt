@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Total Cost</title>
+    <style>
+        body {
+            background-image: url('https://wallpaperaccess.com/full/1264507.jpg');
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        table {
+            width: 50%;
+            margin: 20px auto;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .payment-form {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .payment-option {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Total Payment Amount</h1>
+    <table>
+        <tr>
+            <th>Total Cost</th>
+            <th>Flight ID</th>
+            <th>Departure Date</th>
+            <th>Arrival Date</th>
+            <th>Seat Number</th>
+        </tr>
+        {% if total_cost %}
+        <tr>
+            <td>{{ total_cost.total_cost }}</td>
+            <td>{{ total_cost.flight_id }}</td>
+            <td>{{ total_cost.departure_date }}</td>
+            <td>{{ total_cost.arrival_date }}</td>
+            <td>{{ total_cost.seat_number }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5">No data available</td>
+        </tr>
+        {% endif %}
+    </table>
+
+    <div class="payment-form">
+        <form action="/process_payment11" method="POST">
+            <input type="hidden" name="total_cost" value="{{ total_cost.total_cost }}">
+            <input type="hidden" name="flight_id" value="{{ total_cost.flight_id }}">
+            <input type="hidden" name="departure_date" value="{{ total_cost.departure_date }}">
+            <input type="hidden" name="arrival_date" value="{{ total_cost.arrival_date }}">
+            <input type="hidden" name="seat_number" value="{{ total_cost.seat_number }}">
+            
+            <label for="payment_option">Payment Option:</label>
+            <input type="text" name="payment_option_text" id="payment_option_text" placeholder="Enter Payment Option" required>
+            <!-- Hidden input for payment option -->
+            <input type="hidden" name="payment_option" id="payment_option">
+            
+            
+            <input type="submit" value="Proceed to Payment" onclick="setHiddenFields()">
+        </form>
+    </div>
+
+    <script>
+        function setHiddenFields() {
+            var selectedOption = document.getElementById('payment_option_text').value;
+            document.getElementById('payment_option').value = selectedOption;
+            }
+    </script>
+</body>
+</html>
