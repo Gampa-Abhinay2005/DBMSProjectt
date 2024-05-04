@@ -248,14 +248,15 @@ def book_multi_flight():
         # Retrieve flight ID for the original flight from the form data
         original_flight_id = request.form.get('original_flight_id')
         print(f"Original Flight ID: {original_flight_id}")
-
+        connected_flight_id = request.form.get('connected_flight_id')
         # Check if seats are available for the original flight
         query_original_availability = f"SELECT check_seat_availability1({original_flight_id})"
         original_seats_available = execute_sql_query(query_original_availability)
-
+        query_connected_availability = f"SELECT check_seat_availability({connected_flight_id})"
+        connected_seats_available = execute_sql_query(query_connected_availability)
         print(f"Original Seats Available: {original_seats_available}")
 
-        if original_seats_available[0][0]:
+        if original_seats_available[0][0] and connected_seats_available[0][0]:
             # Retrieve seat ratings data for the original flight
             query_original_ratings = f"SELECT * FROM get_seat_rating_with_average({original_flight_id})"
             original_seat_ratings_data = execute_sql_query(query_original_ratings)
@@ -596,4 +597,3 @@ def review_confirmation():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
