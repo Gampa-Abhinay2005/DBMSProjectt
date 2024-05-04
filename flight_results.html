@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Search Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+            overflow-x: auto; /* Added for horizontal scrolling */
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            position: sticky; /* Added for sticky header */
+            top: 0; /* Added for sticky header */
+            z-index: 1; /* Added for sticky header */
+        }
+        td {
+            background-color: #fff;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        button {
+            padding: 6px 12px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Flight Search Results</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Original Flight ID</th>
+                    <th>Original Airline</th>
+                    <th>Original Departure Airport</th>
+                    <th>Original Departure Date/Time</th>
+                    <th>Original Airline Type</th>
+                    <th>Original Flight Status</th>
+                    <th>Connected Flight ID</th>
+                    <th>Connected Airline</th>
+                    <th>Connected Arrival Airport</th>
+                    <th>Connected Departure Date/Time</th>
+                    <th>Connected Arrival Date/Time</th>
+                    <th>Connected Airline Type</th>
+                    <th>Connected Flight Status</th>
+                    <th>Connection ID</th>
+                    <th>Leg Number</th>
+                    <th>Layover Duration</th>
+                    <th>Layover Airport</th>
+                    <th>Book</th> 
+                </tr>
+            </thead>
+            <tbody>
+                {% for flight in flights %}
+                <tr>
+                    <td>{{ flight[0] }}</td>
+                    <td>{{ flight[1] }}</td>
+                    <td>{{ flight[2] }}</td>
+                    <td>{{ flight[5] }}</td>
+                    <td>{{ flight[6] }}</td>
+                    <td>{{ flight[7] }}</td>
+                    <td>{{ flight[8] }}</td>
+                    <td>{{ flight[9] }}</td>
+                    <td>{{ flight[11] }}</td>
+                    <td>{{ flight[12] }}</td>
+                    <td>{{ flight[13] }}</td>
+                    <td>{{ flight[14] }}</td>
+                    <td>{{ flight[15] }}</td>
+                    <td>{{ flight[16] }}</td>
+                    <td>{{ flight[17] }}</td>
+                    <td>{{ flight[18] }}</td>
+                    <td>{{ flight[19] }}</td>
+                    <td>
+                        <form action="/book_flight1" method="post">
+                            <input type="hidden" name="original_flight_id" value="{{ flight[0] }}">
+                            <input type="hidden" name="connected_flight_id" value="{{ flight[8] }}">
+                            <button type="submit">Book</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
