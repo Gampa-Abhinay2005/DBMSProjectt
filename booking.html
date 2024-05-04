@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Confirmed</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('https://wallpaperaccess.com/full/1264507.jpg');
+            background-size: cover;
+            background-position: center;
+            background-position-y: 10px;
+            font-family: Arial, sans-serif;
+            text-align: center; 
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.8); /* Add opacity to the background */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .booking-details {
+            margin-top: 30px;
+            border-top: 2px solid #ddd;
+            padding-top: 20px;
+            text-align: left;
+        }
+        .booking-details p {
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .booking-details strong {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .confirmation-message {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 30px;
+            color: #007bff;
+        }
+        .thank-you-message {
+            font-size: 20px;
+            text-align: center;
+            margin-top: 40px;
+            color: #555;
+        }
+        .exit-button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 30px;
+            display: inline-block;
+        }
+        .exit-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Booking Confirmed</h1>
+        <div class="confirmation-message">Your booking has been confirmed!</div>
+        <div class="booking-details">
+            <p><strong>Booking ID:</strong> {{ booking_info[0] }}</p>
+            <p><strong>User ID:</strong> {{ booking_info[1] }}</p>
+            <p><strong>Total Cost:</strong> ${{ booking_info[2] }}</p>
+            <p><strong>Payment ID:</strong> {{ booking_info[3] }}</p>
+            <p><strong>Flight ID:</strong> {{ booking_info[5] }}</p>
+            <p><strong>Departure Date:</strong> {{ booking_info[6].strftime('%d-%m-%Y') }}</p>
+            <p><strong>Arrival Date:</strong> {{ booking_info[7].strftime('%d-%m-%Y') }}</p>
+        </div>
+        <div class="thank-you-message">Thank you for booking with us!</div>
+        <input type="hidden" name="flight_id" value="{{ booking_info[5] }}">
+   
+        <a href="/exit" class="exit-button">Exit</a>
+    </div>
+</body>
+</html>
