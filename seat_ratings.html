@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seat Ratings</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('https://wallpaperaccess.com/full/1264507.jpg');
+            background-size: cover;
+            background-position: center;
+            background-position-y: 10px;
+            font-family: Arial, sans-serif;
+            text-align: center; 
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .book-button, .addons-button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .book-button:hover, .addons-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Seat Ratings for Flight</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Flight ID</th>
+                <th>Seat Number</th>
+                <th>Type of Seat</th>
+                <th>Seat Price</th>
+                <th>Availability Status</th>
+                <th>Seat Status</th>
+                <th>Seat Features</th>
+                <th>Average Rating</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for seat in seat_ratings %}
+            <tr>
+                <td>{{ seat[0] }}</td>
+                <td>{{ seat[1] }}</td>
+                <td>{{ seat[2] }}</td>
+                <td>${{ seat[3] }}</td>
+                <td>{{ seat[4] }}</td>
+                <td>{{ seat[5] }}</td>
+                <td>{{ seat[6] }}</td>
+                <td>{{ seat[7] }}</td>
+                <td>
+                    <form action="/book_seat" method="post">
+                        <input type="hidden" name="seat_number" value="{{ seat[1] }}">
+                        <input type="hidden" name="flight_id" value="{{ seat[0] }}">
+                        <button type="submit" class="book-button">Book</button>
+                    </form>
+                    <form action="/add_food_addons" method="post">
+                        <input type="hidden" name="flight_id" value="{{ seat[0] }}"> <!-- Example value, replace with actual dynamic value -->
+                        <input type="hidden" name="seat_number" value="{{ seat[1] }}"> <!-- Example value, replace with actual dynamic value -->
+                        <input type="hidden" name="type_of_seat" value="{{ seat[2] }}"> <!-- Example value, replace with actual dynamic value -->
+                        <button type="submit">Add Food Addons</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
+
+
+
